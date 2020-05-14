@@ -209,8 +209,7 @@ static void xbuf_format_converter(void *xbuf, zend_bool is_char, const char *fmt
 
 ```
 
-`%p`个`%n`的实现跟c语言中的`printf`函数类似，`%p`将`ap`下一个偏移位置的数据强制转为16进制字符串，`%n`是向`ap`下一个偏移位置写入
-当前需要打印的字符长度。`%Z`是它特有的，将`ap`下一个偏移位置的数据转化为zval指针类型，然后调用`zend_make_printable_zval`将`zval`数据类型转化为字符串，跟进一下`zend_make_printable_zval`函数：
+`%p`和`%n`的实现跟c语言中的`printf`函数类似，`%p`将`ap`下一个偏移位置的数据强制转为16进制字符串，`%n`是向`ap`下一个偏移位置写入当前需要打印的字符长度。`%Z`是它特有的，将`ap`下一个偏移位置的数据转化为zval指针类型，然后调用`zend_make_printable_zval`将`zval`数据类型转化为字符串，跟进一下`zend_make_printable_zval`函数：
 
 ```c++
 // Zend/zend.c
@@ -500,7 +499,7 @@ ZEND_API zval *zend_read_property_ex(zend_class_entry *scope, zval *object, zend
 	return value;
 }
 ```
-这里 `Z_OBJ_HT_P(object)->read_property` 是一个libphp中的函数，是存储在r9中的，没有被清空，所以通过泄露R9就可以获得libphp.so的加载基址，但是这种办法不通用，所以被我删除了。
+这里 `Z_OBJ_HT_P(object)->read_property` 是一个指向libphp中某个函数的函数指针，是存储在r9中的，没有被清空，所以通过泄露R9就可以获得libphp.so的加载基址，但是这种办法不通用，所以被我删除了。
 
 exp中首先使用 700个 `%p` 泄露栈数据，获取一个自主可控的地址空间作为将来栈迁移的基址heap_addr以及libc.so的基址，有由于RCX的值完全可控，所以可以让RCX指向heap_addr，然后在heap_addr的位置布局object类型的fake zval，通过控制`object.handlers->cast_object`来控制EIP，将EIP劫持到指令`push [rcx]; rcr [rbx+0x51],0x41 ; pop rsp ;ret ;`的位置来进行栈迁移，并同时布局rop chain用于控制RDI和RSI，最后跳转到`popen`进行任意命令执行。栈数据构造的代码以及注释如下：
 
