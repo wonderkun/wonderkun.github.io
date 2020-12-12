@@ -200,13 +200,12 @@
           {%- endif %}
           <!--/noindex-->
         {% else %}
-          {{ partial('_custom/google-adsense-page.swig') }}
           {{ post.content }}
+          {{ partial('_custom/google-adsense-page.swig') }}
         {%- endif %}
       {% else %}
-        {{ partial('_custom/google-adsense-page.swig') }}
-        {{ partial('_custom/google-adsense-show.swig') }}
         {{ post.content }}
+        {{ partial('_custom/google-adsense-show.swig') }}
       {%- endif %}
     </div>
 
