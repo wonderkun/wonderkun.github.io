@@ -205,6 +205,7 @@
         {%- endif %}
       {% else %}
         {{ post.content }}
+        {{ partial('_custom/google-adsense-page.swig') }}
         {{ partial('_custom/google-adsense-show.swig') }}
       {%- endif %}
     </div>
