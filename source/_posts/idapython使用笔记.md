@@ -11,6 +11,21 @@ tags:
   - binary
 ---
 
+
+### idapython的学习资料推荐
+
+1. 《ida权威指南第二版》
+2.  [https://wooyun.js.org/drops/IDAPython%20%E8%AE%A9%E4%BD%A0%E7%9A%84%E7%94%9F%E6%B4%BB%E6%9B%B4%E6%BB%8B%E6%B6%A6%20part1%20and%20part2.html](https://wooyun.js.org/drops/IDAPython 让你的生活更滋润 part1 and part2.html) 
+3.  https://cartermgj.github.io/2017/10/10/ida-python/ 
+
+<!-- more -->
+
+4.  https://www.hex-rays.com/products/ida/support/idapython_docs/ 
+5. 《idapython book》有中文版本的翻译
+6.  https://bbs.pediy.com/thread-225091.htm  python模拟执行x86，基于idapython
+7.  《The Beginner’s Guide to IDAPython version 6.0》
+
+
 ### ida python2 and python3 switch
 
 You have chosen to enable IDAPython 2.  The IDAPython 3 plugins have been renamed to idapython.3.disabled and idapython64.3.disabled in the plugins subdirectory.  If you want to switch to IDAPython 3, proceed as follows:
@@ -20,15 +35,7 @@ You have chosen to enable IDAPython 2.  The IDAPython 3 plugins have been rename
 3. Make sure a 64-bit Python 3 interpreter is installed.
 4. Run the command-line tool idapyswitch to configure IDAPython 3 for your Python interpreter.
 
-### idapython的学习资料
 
-1. 《ida权威指南第二版》
-2.  [https://wooyun.js.org/drops/IDAPython%20%E8%AE%A9%E4%BD%A0%E7%9A%84%E7%94%9F%E6%B4%BB%E6%9B%B4%E6%BB%8B%E6%B6%A6%20part1%20and%20part2.html](https://wooyun.js.org/drops/IDAPython 让你的生活更滋润 part1 and part2.html) 
-3.  https://cartermgj.github.io/2017/10/10/ida-python/ 
-4.  https://www.hex-rays.com/products/ida/support/idapython_docs/ 
-5. 《idapython book》有中文版本的翻译
-6.  https://bbs.pediy.com/thread-225091.htm  python模拟执行x86，基于idapython
-7.  《The Beginner’s Guide to IDAPython version 6.0》
 #### 简介
 
 IDAPython核心有如下3个python模块：
