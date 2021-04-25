@@ -14,7 +14,7 @@ secret_key = 'QtCTewlRAva8NzdaIqzDfVi8e8zYCbs8lbtIVAeh'
 # 存储空间
 bucket_name = 'wonderkunpic'
 # 域名
-bucket_url = 'http://pic.wonderkun.cc/'
+bucket_url = 'https://pic.wonderkun.cc/'
 
 imageFileDir = "./source/uploads/"
 
