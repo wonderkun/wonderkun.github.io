@@ -1,6 +1,7 @@
 ---
 title: 杀软的无奈-手工构建免杀的ELF文件(四)
 url: 1699.html
+password: fakefake
 id: 1699
 categories:
   - 学习记录
