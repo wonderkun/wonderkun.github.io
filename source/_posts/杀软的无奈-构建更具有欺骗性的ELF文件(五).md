@@ -1,5 +1,5 @@
 ---
-title: 杀软的无奈-手工构建免杀的ELF文件(四)
+title: 杀软的无奈-构建更具有欺骗性的ELF文件(五)
 url: 1699.html
 password: fakefake
 id: 1699
