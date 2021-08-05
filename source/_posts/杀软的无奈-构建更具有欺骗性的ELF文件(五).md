@@ -10,6 +10,7 @@ tags:
   - 杀软的无奈
 ---
 
+> 本文首发于安全客: https://www.anquanke.com/post/id/248688
 
 ## 前言
 
