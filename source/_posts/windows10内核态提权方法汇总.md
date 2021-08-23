@@ -25,7 +25,7 @@ tags:
 
 不过在使用之前我们还是简单的看一下`flare-kscldr` 的代码逻辑，帮助我们理解。
 
-驱动中主要实现了如下两个irp请求：
+驱动中主要实现了如下两个irp请求的响应函数：
 
 ```c++
     DriverObject->MajorFunction[IRP_MJ_WRITE] = scldrWrite;
@@ -1290,23 +1290,3 @@ ret
 ## 相关的代码
 
 上面的测试代码放在github上，[https://github.com/wonderkun/flare-kscldr](https://github.com/wonderkun/flare-kscldr)
-
-##  reference
-
-1. https://media.blackhat.com/bh-us-12/Briefings/Cerrudo/BH_US_12_Cerrudo_Windows_Kernel_WP.pdf
-2. https://improsec.com/tech-blog/windows-kernel-shellcode-on-windows-10-part-1
-3. https://improsec.com/tech-blog/windows-kernel-shellcode-on-windows-10-part-2
-4. https://improsec.com/tech-blog/windows-kernel-shellcode-on-windows-10-part-3
-5. https://improsec.com/tech-blog/windows-kernel-shellcode-on-windows-10-part-4-there-is-no-code
-6. https://docs.microsoft.com/en-us/windows-hardware/drivers/kernel/eprocess
-7. https://www.matteomalvica.com/blog/2019/07/06/windows-kernel-shellcode/
-8. https://connormcgarr.github.io/x64-Kernel-Shellcode-Revisited-and-SMEP-Bypass/
-9. https://media.blackhat.com/bh-us-12/Briefings/Cerrudo/BH_US_12_Cerrudo_Windows_Kernel_WP.pdf
-10. https://github.com/fireeye/flare-kscldr
-11. https://www.fireeye.com/blog/threat-research/2018/04/loading-kernel-shellcode.html
-12. http://terminus.rewolf.pl/terminus/
-13. https://ntdiff.github.io/
-14. https://zhuanlan.zhihu.com/p/133514866
-15. https://docs.microsoft.com/zh-CN/windows/security/identity-protection/access-control/security-identifiers
-16. http://scz.617.cn:8/misc/201811071803.txt
-17. https://docs.microsoft.com/zh-CN/windows/security/identity-protection/access-control/security-identifiers
