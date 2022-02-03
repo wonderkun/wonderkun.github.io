@@ -35,7 +35,8 @@ for($i=1;$i<5;$i++){
 ?>
 ```
 
-<img src="/uploads/2017/03/1.png" alt="1" width="618" height="739" class="alignnone size-full wp-image-586" />
+<img src="https://pic.wonderkun.cc/uploads/2017/03/1.png" alt="1" width="618" height="739" class="alignnone size-full wp-image-586" />
+
 测试发现无论是rand()函数还是mt_rand()函数,当随机数种子相同的时候,无论运行多少次,产生的随机数序列都是一样的,所以如果我们在代码中自己播种了随机数种子,但是泄露了这个种子,就会导致产生的随机数序列被别人猜到,造成安全问题.
 
 但是在 php  > 4.2.0 的版本中,不再需要手动用 srand() 或 mt_srand() 函数给随机数发生器播种了，已自动完成。也就是说随机数种子不用我们给了,php会自动播种一个种子,这样就不存在种子泄露的问题了,但是这样就安全了吗?
@@ -48,14 +49,14 @@ for($i=1;$i<5;$i++){
 php -r 'echo getrandmax()."\n".mt_getrandmax()."\n"; echo (pow(2,31)-1)."\n";'
 ```
 
-<img src="/uploads/2017/03/2.png" alt="2" width="1241" height="246" class="alignnone size-full wp-image-587" />
+<img src="https://pic.wonderkun.cc/uploads/2017/03/2.png" alt="2" width="1241" height="246" class="alignnone size-full wp-image-587" />
 
 在我的 linux 64 位系统中,rand() 和 mt_rand() 产生的最大随机数都是2147483647,
 正好是 2^31-1 , 也就是说随机播种的种子也是在这个范围中,0 - 2147483647 的这个范围是允许我们进行爆破的. 但是用 php爆破比较慢,有大牛已经用c写了一个爆破种子程序php_mt_seed,请参考这里[http://www.openwall.com/php_mt_seed/](http://www.openwall.com/php_mt_seed/)
 
 下面演示一下它的用法:
 
-<img src="/uploads/2017/03/3.png" alt="3" width="950" height="501" class="alignnone size-full wp-image-588" />
+<img src="https://pic.wonderkun.cc/uploads/2017/03/3.png" alt="3" width="950" height="501" class="alignnone size-full wp-image-588" />
 
 在例子中,我没有自己播种种子,而是让php自动去播种一个种子并产生一个随机数,然后用 php_mt_seed 这个工具把产生的随机数作为参数,去爆破种子,最后的得到了四个结果.
 经过验证,四个结果都是对的.都会产生这样的一个随机数.  
@@ -64,7 +65,7 @@ php -r 'echo getrandmax()."\n".mt_getrandmax()."\n"; echo (pow(2,31)-1)."\n";'
 
 看下面的测试:
 
-<img src="/uploads/2017/03/4.png" alt="4" width="1094" height="623" class="alignnone size-full wp-image-589" />
+<img src="https://pic.wonderkun.cc/uploads/2017/03/4.png" alt="4" width="1094" height="623" class="alignnone size-full wp-image-589" />
 
 在测试中,在没有进行手工播种的情况下产生两个连续的随机数,然后去爆破种子,得到了四个可能种子,经过测试发现其中一个种子产生的随机数序列和预期的相同,**所以可以猜想在php中产生一系列的随机数时,只进行了一次播种!**
 
@@ -114,7 +115,7 @@ echo "\n";
 ```
 然后用 php_mt_seed 进行破解,这个需要的时间还是挺长的,几分钟左右.
 
-<img src="/uploads/2017/03/5.png" alt="5" width="1919" height="261" class="alignnone size-full wp-image-590" />
+<img src="https://pic.wonderkun.cc/uploads/2017/03/5.png" alt="5" width="1919" height="261" class="alignnone size-full wp-image-590" />
 
 已经成功的破解了一个seed,下面看这个seed对不对:
 ```php
@@ -139,7 +140,7 @@ echo "[*] Create a private key which you don't know:".$private."\n";
 
 跟刚才的结果一模一样 :
 
-<img src="/uploads/2017/03/6.png" alt="6" width="898" height="171" class="alignnone size-full wp-image-591" />
+<img src="https://pic.wonderkun.cc/uploads/2017/03/6.png" alt="6" width="898" height="171" class="alignnone size-full wp-image-591" />
 
 这样就说明了,我们只需要拿到public key,就可以预测到private key 的值了.
 
@@ -232,7 +233,7 @@ for($i=0;$i<50;$i++){  //先产生 32个随机数
 
 看一下结果:
 
-<img src="/uploads/2017/03/7.png" alt="7" width="672" height="454" class="alignnone size-full wp-image-592" />
+<img src="https://pic.wonderkun.cc/uploads/2017/03/7.png" alt="7" width="672" height="454" class="alignnone size-full wp-image-592" />
 
 发现预测的值,基本都是对的,这样就可以根据之前生成的随机数,预测之后产生的随机数.
 因为这个缺陷,我还出过一个题目,题目在这里[https://github.com/wonderkun/CTF_web/tree/master/web500-2](https://github.com/wonderkun/CTF_web/tree/master/web500-2)
