@@ -17,7 +17,7 @@ tags:
 常规的shellcode注入一般是通过`VirtualAllocEx`,`WriteProcessMemory` 和 `CreateRemoteThread` 来实现的，但是这种方式是被安全软件重点监控的，同时微软提供的ETW接口也是可以轻易检测出上述方式进行代码注入的痕迹。本文的核心是讲解怎么利用具备 RWX-S 权限且自身有签名的白DLL进行一种比较隐蔽的shellcode注入，
 并讲解具体的代码实现以及在写代码实现的过程中遇到的坑。本方法是由文章提出的：https://billdemirkapi.me/sharing-is-caring-abusing-shared-sections-for-code-injection/ ，详情可以参考此文章。
 
-
+<!-- more -->
 ## 基础知识回顾
 
 PE文件的每个section都具备自己的权限，表明他被映射到虚拟内存之后的操作权限，也就是 `SECTION_CHARACTERISTICS` 这个字段，占四个字节。
