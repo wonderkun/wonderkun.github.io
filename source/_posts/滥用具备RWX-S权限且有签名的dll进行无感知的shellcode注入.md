@@ -2,7 +2,6 @@
 title: 滥用具备RWX-S权限且有签名的dll进行无感知的shellcode注入
 url: 1761.html
 id: 1761
-password: LRczf@UYSRUqhO3Oz9py
 categories:
   - 学习记录
 date: 2022-04-16 16:16:34
@@ -16,6 +15,9 @@ tags:
 
 常规的shellcode注入一般是通过`VirtualAllocEx`,`WriteProcessMemory` 和 `CreateRemoteThread` 来实现的，但是这种方式是被安全软件重点监控的，同时微软提供的ETW接口也是可以轻易检测出上述方式进行代码注入的痕迹。本文的核心是讲解怎么利用具备 RWX-S 权限且自身有签名的白DLL进行一种比较隐蔽的shellcode注入，
 并讲解具体的代码实现以及在写代码实现的过程中遇到的坑。本方法是由文章提出的：https://billdemirkapi.me/sharing-is-caring-abusing-shared-sections-for-code-injection/ ，详情可以参考此文章。
+
+我的知识星球开启内测了，现在可以免费加入，来一起学习安全技术。(在圈子内可以下载到源代码)
+![](https://pic.wonderkun.cc//uploads/note/202204272132230.png)
 
 <!-- more -->
 ## 基础知识回顾
