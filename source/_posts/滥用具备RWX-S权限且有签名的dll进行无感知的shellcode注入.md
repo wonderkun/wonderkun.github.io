@@ -17,8 +17,8 @@ tags:
 并讲解具体的代码实现以及在写代码实现的过程中遇到的坑。本方法是由文章提出的：https://billdemirkapi.me/sharing-is-caring-abusing-shared-sections-for-code-injection/ ，详情可以参考此文章。
 
 我的知识星球开启内测了，现在可以免费加入，来一起学习安全技术。(在圈子内可以下载到源代码)
-![](https://pic.wonderkun.cc//uploads/note/202204272132230.png)
 
+![](https://pic.wonderkun.cc//uploads/note/202204272138408.png)
 <!-- more -->
 ## 基础知识回顾
 
