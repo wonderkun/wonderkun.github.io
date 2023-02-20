@@ -15,6 +15,7 @@ tags:
 
 具备检测相关经验的同学可能都对yara匹配引擎比较熟悉了，看雪论坛上也有非常详细的翻译文章 - [编写Yara规则检测恶意软件](https://bbs.kanxue.com/thread-226011.htm)
 本文主要对yara文档容易被忽略的部分进行了翻译和总结，并且给出一些进阶用法的例子，提高对yara匹配引擎语法的理解程度。
+<!-- more -->
 
 **<br />**参考文档：**<br />
 [https://yara.readthedocs.io/en/v4.2.3/writingrules.html](https://yara.readthedocs.io/en/v4.2.3/writingrules.html)
