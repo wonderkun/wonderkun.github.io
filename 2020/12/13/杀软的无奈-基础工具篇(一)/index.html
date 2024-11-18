@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="https://fonts.font.im/css?family=Lato:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="/lib/fancybox/jquery.fancybox.min.css">
+
+<script data-ad-client="ca-pub-9381923643450020" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"blog.wonderkun.cc","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":false,"style":"mac"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":true,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="本文首发于安全客: https:&#x2F;&#x2F;www.anquanke.com&#x2F;post&#x2F;id&#x2F;242548  前言杀软的无奈是我准备开始写的一个新的专题文章，主要用来分享恶意代码分析过程用到的一些方法和工具，以及shellcode编写,shellcode分析，metasploit中的shellcode编码器的实现，编码器特征码定位，编码shellcode绕过杀软检测，基于unicorn检测shellco">
+<meta property="og:type" content="article">
+<meta property="og:title" content="杀软的无奈-基础工具篇(一)">
+<meta property="og:url" content="http://blog.wonderkun.cc/2020/12/13/%E6%9D%80%E8%BD%AF%E7%9A%84%E6%97%A0%E5%A5%88-%E5%9F%BA%E7%A1%80%E5%B7%A5%E5%85%B7%E7%AF%87(%E4%B8%80)/index.html">
+<meta property="og:site_name" content="wonderkun&#39;s | blog">
+<meta property="og:description" content="本文首发于安全客: https:&#x2F;&#x2F;www.anquanke.com&#x2F;post&#x2F;id&#x2F;242548  前言杀软的无奈是我准备开始写的一个新的专题文章，主要用来分享恶意代码分析过程用到的一些方法和工具，以及shellcode编写,shellcode分析，metasploit中的shellcode编码器的实现，编码器特征码定位，编码shellcode绕过杀软检测，基于unicorn检测shellco">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://pic.wonderkun.cc/uploads/2021/03/16079165032315.jpg">
+<meta property="og:image" content="https://pic.wonderkun.cc/uploads/2021/03/16079168097121.jpg">
+<meta property="article:published_time" content="2020-12-13T11:57:14.000Z">
+<meta property="article:modified_time" content="2024-11-18T11:46:14.722Z">
+<meta property="article:author" content="wonderkun">
+<meta property="article:tag" content="杀软的无奈">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://pic.wonderkun.cc/uploads/2021/03/16079165032315.jpg">
+
+<link rel="canonical" href="http://blog.wonderkun.cc/2020/12/13/%E6%9D%80%E8%BD%AF%E7%9A%84%E6%97%A0%E5%A5%88-%E5%9F%BA%E7%A1%80%E5%B7%A5%E5%85%B7%E7%AF%87(%E4%B8%80)/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>杀软的无奈-基础工具篇(一) | wonderkun's | blog</title>
+  
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?1a23c3c0cdc421d3cfd3c63dc9721ffe";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">wonderkun's | blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">share with you!</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="archive fa-fw"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-sitemap">
+
+    <a href="/sitemap.xml" rel="section"><i class="sitemap fa-fw"></i>站点地图</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+  <a href="https://github.com/wonderkun" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://blog.wonderkun.cc/2020/12/13/%E6%9D%80%E8%BD%AF%E7%9A%84%E6%97%A0%E5%A5%88-%E5%9F%BA%E7%A1%80%E5%B7%A5%E5%85%B7%E7%AF%87(%E4%B8%80)/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="https://pic.wonderkun.cc/uploads/2016/04/09451H922-11.jpg">
+      <meta itemprop="name" content="wonderkun">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wonderkun's | blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          杀软的无奈-基础工具篇(一)
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-12-13 19:57:14" itemprop="dateCreated datePublished" datetime="2020-12-13T19:57:14+08:00">2020-12-13</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2024-11-18 19:46:14" itemprop="dateModified" datetime="2024-11-18T19:46:14+08:00">2024-11-18</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95/" itemprop="url" rel="index"><span itemprop="name">学习记录</span></a>
+                </span>
+            </span>
+
+          
+            <span id="/2020/12/13/%E6%9D%80%E8%BD%AF%E7%9A%84%E6%97%A0%E5%A5%88-%E5%9F%BA%E7%A1%80%E5%B7%A5%E5%85%B7%E7%AF%87(%E4%B8%80)/" class="post-meta-item leancloud_visitors" data-flag-title="杀软的无奈-基础工具篇(一)" title="阅读次数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span class="leancloud-visitors-count"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Valine：</span>
+    
+    <a title="valine" href="/2020/12/13/%E6%9D%80%E8%BD%AF%E7%9A%84%E6%97%A0%E5%A5%88-%E5%9F%BA%E7%A1%80%E5%B7%A5%E5%85%B7%E7%AF%87(%E4%B8%80)/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/2020/12/13/%E6%9D%80%E8%BD%AF%E7%9A%84%E6%97%A0%E5%A5%88-%E5%9F%BA%E7%A1%80%E5%B7%A5%E5%85%B7%E7%AF%87(%E4%B8%80)/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <blockquote>
+<p>本文首发于安全客: <a href="https://www.anquanke.com/post/id/242548" target="_blank" rel="noopener">https://www.anquanke.com/post/id/242548</a></p>
+</blockquote>
+<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>杀软的无奈是我准备开始写的一个新的专题文章，主要用来分享恶意代码分析过程用到的一些方法和工具，以及shellcode编写,shellcode分析，metasploit中的shellcode编码器的实现，编码器特征码定位，编码shellcode绕过杀软检测，基于unicorn检测shellcode编码器等相关的知识。文章中讲的案例会主要集中在linux平台中的ELF文件，但是由于个人的精力和知识水平有限，文章更新的频率和质量不太敢保证。如果有地方写的不太对，希望大佬们能够积极斧正，给与一些指导和帮助。</p>
+<a id="more"></a>
+
+<p>这是这个系列的第一篇文章，俗话说万丈高楼平地起，我们第一篇主要说一下我觉得非常实用的工具，在之后的文章中我的脚本会基于这些工具开发，并不会再介绍这些基础工具的使用。</p>
+<h2 id="相关工具的简介"><a href="#相关工具的简介" class="headerlink" title="相关工具的简介"></a>相关工具的简介</h2><ul>
+<li>Capstone, 全能的反编译框架</li>
+<li>Keystone, 全能的编译框架</li>
+<li>IDAPython, 给ida神器再插上翅膀</li>
+<li>unicorn, 基于qemu的模拟执行框架(unicorn官方版本不支持SMC，我patch了一下相关代码<a href="https://github.com/wonderkun/unicorn,建议安装这个版本" target="_blank" rel="noopener">https://github.com/wonderkun/unicorn,建议安装这个版本</a>)</li>
+<li>flare-emu, 基于unicorn的ida插件，能够快速帮你获取你不想读的代码的执行结果。</li>
+</ul>
+<h2 id="全能反汇编引擎-Capstone"><a href="#全能反汇编引擎-Capstone" class="headerlink" title="全能反汇编引擎 Capstone"></a>全能反汇编引擎 Capstone</h2><p>Capstone是一个非常优秀的反汇编框架，支持多种CPU架构的，而且提供多种语言的api接口，使用起来非常的简单方便，IDA，Radare2，Qemu等著名项目都使用了Capstone Engine。</p>
+<p>源码地址:<a href="https://github.com/aquynh/capstone.git" target="_blank" rel="noopener">https://github.com/aquynh/capstone.git</a>,官方文档: <a href="http://www.capstone-engine.org/lang_python.html" target="_blank" rel="noopener">http://www.capstone-engine.org/lang_python.html</a></p>
+<p>一个简单的例子如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> capstone <span class="keyword">import</span> *</span><br><span class="line"></span><br><span class="line">CODE = <span class="string">b"\x55\x48\x8b\x05\xb8\x13\x00\x00"</span></span><br><span class="line"></span><br><span class="line">md = Cs(CS_ARCH_X86, CS_MODE_64)</span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> md.disasm(CODE, <span class="number">0x1000</span>):</span><br><span class="line">    print(<span class="string">"%d\t0x%x:\t%s\t%s\t%s"</span> %(i.id,i.address, i.mnemonic, i.op_str,i.bytes.hex()))</span><br></pre></td></tr></table></figure>
+<p>初始化一个Cs类，需要有两个参数，分别是平台和架构模式<br><img src="https://pic.wonderkun.cc/uploads/2021/03/16079165032315.jpg" alt=""></p>
+<p><code>md.disasm</code> 函数需要提供两个参数，第一个参数是需要分析的bytes，第二个参数是基地址。返回一个生成器，遍历就可以得到每条指令的对象 CsInsn，它导出了与此条指令相关的很多属性，详细的解释如下：<br><img src="https://pic.wonderkun.cc/uploads/2021/03/16079168097121.jpg" alt=""></p>
+<h2 id="全能的编译引擎-Keystone"><a href="#全能的编译引擎-Keystone" class="headerlink" title="全能的编译引擎 Keystone"></a>全能的编译引擎 Keystone</h2><p>与Capstone相对应的，那必然是keystone了，keystone与capstone功能恰好恰好相反，是一个全能的支持多种架构的编译框架。源代码地址<a href="https://github.com/keystone-engine/keystone" target="_blank" rel="noopener">https://github.com/keystone-engine/keystone</a>,官方文档地址<a href="https://www.keystone-engine.org/docs/tutorial.html" target="_blank" rel="noopener">https://www.keystone-engine.org/docs/tutorial.html</a>。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">CODE = <span class="string">b"INC ecx; DEC edx"</span> <span class="comment"># separate assembly instructions by ; or \n</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">try</span>:</span><br><span class="line">    <span class="comment"># Initialize engine in X86-32bit mode</span></span><br><span class="line">    ks = Ks(KS_ARCH_X86, KS_MODE_32)</span><br><span class="line">    encoding, count = ks.asm(CODE)</span><br><span class="line">    print(<span class="string">"%s = %s (number of statements: %u)"</span> %(CODE, encoding, count))</span><br><span class="line"><span class="keyword">except</span> KsError <span class="keyword">as</span> e:</span><br><span class="line">    print(<span class="string">"ERROR: %s"</span> %e)</span><br></pre></td></tr></table></figure>
+<p>可以看到，跟Capstone的使用方法非常类似。</p>
+<h2 id="IDAPython"><a href="#IDAPython" class="headerlink" title="IDAPython"></a>IDAPython</h2><p>ida是逆向分析的神器，但是再加上idapython那就是给神器安装上翅膀，非常好用，关于idapython的api使用说明，可以读一下我的学习记录<a href=""></a>，里面有比较好的学习资料推荐。</p>
+<h2 id="flare-emu"><a href="#flare-emu" class="headerlink" title="flare-emu"></a>flare-emu</h2><p>是fireEye开源的一款基于unicorn，并且直接可以再ida导入使用的代码模拟执行工具，这个工具对于我们利用ida分析恶意代码或者shellcode都非常的有用，特别是复杂的加密算法，或者是恶心的自解密代码。<br>关于这款工具的使用说明可以参考这篇翻译文章<a href="https://wonderkun.cc/2020/03/02/%E7%94%A8%E6%A8%A1%E6%8B%9F%E6%89%A7%E8%A1%8C%E5%AE%9E%E7%8E%B0Objective-C%E4%BB%A3%E7%A0%81%E8%87%AA%E5%8A%A8%E5%8C%96%E5%88%86%E6%9E%90/" target="_blank" rel="noopener">https://wonderkun.cc/2020/03/02/%E7%94%A8%E6%A8%A1%E6%8B%9F%E6%89%A7%E8%A1%8C%E5%AE%9E%E7%8E%B0Objective-C%E4%BB%A3%E7%A0%81%E8%87%AA%E5%8A%A8%E5%8C%96%E5%88%86%E6%9E%90/</a><br>,或者直接看源代码 <a href="https://github.com/fireeye/flare-emu" target="_blank" rel="noopener">https://github.com/fireeye/flare-emu</a>，我当时修改了一个python3的版本用于支持ida7.4，<br>详情见我的github<a href="https://github.com/wonderkun/flare-emu" target="_blank" rel="noopener">https://github.com/wonderkun/flare-emu</a>。</p>
+<p><strong>注意</strong>: 在mac平台上，ida默认使用的python并不是是用brew安装的python3，需要手工切换一下，切换方法可以参考<a href="https://github.com/wonderkun/flare-emu#intall-on-mac" target="_blank" rel="noopener">https://github.com/wonderkun/flare-emu#intall-on-mac</a>。<br>pip安装的unicorn可能不支持python3，需要自己编译安装一下unicorn。</p>
+<h2 id="unicorn"><a href="#unicorn" class="headerlink" title="unicorn"></a>unicorn</h2><p>Unicorn 是一款基于qemu模拟器的模拟执行框架，支持Arm, Arm64 (Armv8), M68K, Mips, Sparc, &amp; X86 (include X86_64)等指令集，为多种语言提供编程接口比如C/C++、Python、Java 等语言。Unicorn的DLL 可以被更多的语言调用，比如易语言、Delphi，前途无量。它的设计之初就考虑到线程安全问题，能够同时并发模拟执行代码，极大的提高了实用性。</p>
+<p><strong>在后续分析shellcode的过程中，会遇到大量的 self-modify-code，unicorn官方提供的版本是不支持SMC代码的，<a href="https://github.com/unicorn-engine/unicorn/issues/820,所以我参照网上的方法patch了一个版本https://github.com/wonderkun/unicorn,建议安装这个版本。就目前来看是够用的，但是官方还没有接受我的pr，具体原因未知。" target="_blank" rel="noopener">https://github.com/unicorn-engine/unicorn/issues/820,所以我参照网上的方法patch了一个版本https://github.com/wonderkun/unicorn,建议安装这个版本。就目前来看是够用的，但是官方还没有接受我的pr，具体原因未知。</a></strong></p>
+<h3 id="虚拟内存"><a href="#虚拟内存" class="headerlink" title="虚拟内存"></a>虚拟内存</h3><p>Unicorn 采用虚拟内存机制，使得虚拟CPU的内存与真实CPU的内存隔离。Unicorn 使用如下API来操作内存:</p>
+<ul>
+<li>mem_map</li>
+<li>mem_read</li>
+<li>mem_write<br>使用uc_mem_map映射内存的时候，address 与 size 都需要与0x1000对齐，也就是0x1000的整数倍，否则会报UC_ERR_ARG 异常。如何动态分配管理内存并实现libc中的malloc功能将在后面的课程中讲解。<h3 id="Hook机制"><a href="#Hook机制" class="headerlink" title="Hook机制"></a>Hook机制</h3>Unicorn的Hook机制为编程控制虚拟CPU提供了便利。<br>Unicorn 支持多种不同类型的Hook。<br>大致可以分为(hook_add第一参数，Unicorn常量)：</li>
+<li>指令执行类<ul>
+<li>UC_HOOK_INTR</li>
+<li>UC_HOOK_INSN</li>
+<li>UC_HOOK_CODE</li>
+<li>UC_HOOK_BLOCK</li>
+</ul>
+</li>
+<li>内存访问类<ul>
+<li>UC_HOOK_MEM_READ</li>
+<li>UC_HOOK_MEM_WRITE</li>
+<li>UC_HOOK_MEM_FETCH</li>
+<li>UC_HOOK_MEM_READ_AFTER</li>
+<li>UC_HOOK_MEM_PROT</li>
+<li>UC_HOOK_MEM_FETCH_INVALID</li>
+<li>UC_HOOK_MEM_INVALID</li>
+<li>UC_HOOK_MEM_VALID</li>
+</ul>
+</li>
+<li>异常处理类<ul>
+<li>UC_HOOK_MEM_READ_UNMAPPED</li>
+<li>UC_HOOK_MEM_WRITE_UNMAPPED</li>
+<li>UC_HOOK_MEM_FETCH_UNMAPPED<br>调用hook_add函数可添加一个Hook。Unicorn的Hook是链式的，而不是传统Hook的覆盖式，也就是说，可以同时添加多个同类型的Hook，Unicorn会依次调用每一个handler。hook callback 是有作用范围的（见hook_add begin参数）。<br>python包中的hook_add函数原型如下<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">hook_add</span><span class="params">(self, htype, callback, user_data=None, begin=<span class="number">1</span>, end=<span class="number">0</span>, arg1=<span class="number">0</span>)</span>:</span></span><br><span class="line">    <span class="keyword">pass</span></span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+<li>htype 就是Hook的类型，callback是hook回调用；</li>
+<li>callback 是Hook的处理handler指针。请注意！不同类型的hook，handler的参数定义也是不同的。</li>
+<li>user_data 附加参数，所有的handler都有一个user_data参数，由这里传值。</li>
+<li>begin hook 作用范围起始地址</li>
+<li>end hook 作用范围结束地址，默认则作用于所有代码。</li>
+</ul>
+<h3 id="hookcall"><a href="#hookcall" class="headerlink" title="hookcall"></a>hookcall</h3><p>不同类型的hook，对应的callback的参数也是不相同的，这里只给出C语言定义。<br>Python 编写callback的时候参考C语言即可（看参数）。</p>
+<h4 id="UC-HOOK-CODE-amp-UC-HOOK-BLOCK-的callback定义"><a href="#UC-HOOK-CODE-amp-UC-HOOK-BLOCK-的callback定义" class="headerlink" title="UC_HOOK_CODE &amp; UC_HOOK_BLOCK 的callback定义"></a>UC_HOOK_CODE &amp; UC_HOOK_BLOCK 的callback定义</h4><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">typedef</span> <span class="title">void</span> <span class="params">(*<span class="keyword">uc_cb_hookcode_t</span>)</span><span class="params">(uc_engine *uc, <span class="keyword">uint64_t</span> address, <span class="keyword">uint32_t</span> <span class="built_in">size</span>, <span class="keyword">void</span> *user_data)</span></span>;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>address: 当前执行的指令地址</li>
+<li>size: 当前指令的长度，如果长度未知，则为0</li>
+<li>user_data: hook_add 设置的user_data参数</li>
+</ul>
+<h4 id="READ-WRITE-amp-FETCH-的-callback-定义"><a href="#READ-WRITE-amp-FETCH-的-callback-定义" class="headerlink" title="READ, WRITE &amp; FETCH 的 callback 定义"></a>READ, WRITE &amp; FETCH 的 callback 定义</h4><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">typedef</span> <span class="title">void</span> <span class="params">(*<span class="keyword">uc_cb_hookmem_t</span>)</span><span class="params">(uc_engine *uc, uc_mem_type type,</span></span></span><br><span class="line"><span class="function"><span class="params">        <span class="keyword">uint64_t</span> address, <span class="keyword">int</span> <span class="built_in">size</span>, <span class="keyword">int64_t</span> value, <span class="keyword">void</span> *user_data)</span></span>;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>type: 内存操作类型 READ, or WRITE</li>
+<li>address: 当前指令地址</li>
+<li>size: 读或写的长度</li>
+<li>value: 写入的值（type = read时无视）</li>
+<li>user_data: hook_add 设置的user_data参数</li>
+</ul>
+<h4 id="invalid-memory-access-events-UNMAPPED-and-PROT-events-的-callback-定义"><a href="#invalid-memory-access-events-UNMAPPED-and-PROT-events-的-callback-定义" class="headerlink" title="invalid memory access events (UNMAPPED and PROT events) 的 callback 定义"></a>invalid memory access events (UNMAPPED and PROT events) 的 callback 定义</h4><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">typedef</span> <span class="title">bool</span> <span class="params">(*<span class="keyword">uc_cb_eventmem_t</span>)</span><span class="params">(uc_engine *uc, uc_mem_type type,</span></span></span><br><span class="line"><span class="function"><span class="params">    <span class="keyword">uint64_t</span> address, <span class="keyword">int</span> <span class="built_in">size</span>, <span class="keyword">int64_t</span> value, <span class="keyword">void</span> *user_data)</span></span>;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>type: 内存操作类型 READ, or WRITE</li>
+<li>address: 当前指令地址</li>
+<li>size: 读或写的长度</li>
+<li>value: 写入的值（type = read时无视）</li>
+<li>user_data: hook_add 设置的user_data参数<br>  返回值<br>  返回真，继续模拟执行<br>  返回假，停止模拟执行</li>
+</ul>
+
+        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+<ins class="adsbygoogle"
+     style="display:block; text-align:center;"
+     data-ad-layout="in-article"
+     data-ad-format="fluid"
+     data-ad-client="ca-pub-9381923643450020"
+     data-ad-slot="2524986173"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+
+        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+<!-- 页面嵌入广告 -->
+<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-9381923643450020"
+     data-ad-slot="3413388404"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/%E6%9D%80%E8%BD%AF%E7%9A%84%E6%97%A0%E5%A5%88/" rel="tag"># 杀软的无奈</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2020/12/11/idapython%E4%BD%BF%E7%94%A8%E7%AC%94%E8%AE%B0/" rel="prev" title="idapython使用笔记">
+      <i class="fa fa-chevron-left"></i> idapython使用笔记
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2021/03/24/%E6%9D%80%E8%BD%AF%E7%9A%84%E6%97%A0%E5%A5%88-%E6%9C%80%E7%AE%80%E5%8D%95%E7%9A%84%E5%85%8D%E6%9D%80(%E4%BA%8C)/" rel="next" title="杀软的无奈-最简单的免杀(二)">
+      杀软的无奈-最简单的免杀(二) <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    <div class="comments" id="valine-comments"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#前言"><span class="nav-number">1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#相关工具的简介"><span class="nav-number">2.</span> <span class="nav-text">相关工具的简介</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#全能反汇编引擎-Capstone"><span class="nav-number">3.</span> <span class="nav-text">全能反汇编引擎 Capstone</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#全能的编译引擎-Keystone"><span class="nav-number">4.</span> <span class="nav-text">全能的编译引擎 Keystone</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#IDAPython"><span class="nav-number">5.</span> <span class="nav-text">IDAPython</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#flare-emu"><span class="nav-number">6.</span> <span class="nav-text">flare-emu</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#unicorn"><span class="nav-number">7.</span> <span class="nav-text">unicorn</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#虚拟内存"><span class="nav-number">7.1.</span> <span class="nav-text">虚拟内存</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Hook机制"><span class="nav-number">7.2.</span> <span class="nav-text">Hook机制</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#hookcall"><span class="nav-number">7.3.</span> <span class="nav-text">hookcall</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#UC-HOOK-CODE-amp-UC-HOOK-BLOCK-的callback定义"><span class="nav-number">7.3.1.</span> <span class="nav-text">UC_HOOK_CODE &amp; UC_HOOK_BLOCK 的callback定义</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#READ-WRITE-amp-FETCH-的-callback-定义"><span class="nav-number">7.3.2.</span> <span class="nav-text">READ, WRITE &amp; FETCH 的 callback 定义</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#invalid-memory-access-events-UNMAPPED-and-PROT-events-的-callback-定义"><span class="nav-number">7.3.3.</span> <span class="nav-text">invalid memory access events (UNMAPPED and PROT events) 的 callback 定义</span></a></li></ol></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="wonderkun"
+      src="https://pic.wonderkun.cc/uploads/2016/04/09451H922-11.jpg">
+  <p class="site-author-name" itemprop="name">wonderkun</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">58</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">7</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">46</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/wonderkun" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;wonderkun" rel="noopener" target="_blank"><i class="github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="/729173164@qq.com" title="E-Mail → 729173164@qq.com"><i class="QQ fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+  <div class="links-of-blogroll motion-element">
+    <div class="links-of-blogroll-title"><i class="fa fa-link fa-fw"></i>
+      友情链接
+    </div>
+    <ul class="links-of-blogroll-list">
+        <li class="links-of-blogroll-item">
+          <a href="https://www.leavesongs.com/" title="https:&#x2F;&#x2F;www.leavesongs.com&#x2F;" rel="noopener" target="_blank">phithon</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://www.bertramc.cn/" title="https:&#x2F;&#x2F;www.bertramc.cn&#x2F;" rel="noopener" target="_blank">berTrAM</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.cnblogs.com/" title="http:&#x2F;&#x2F;www.cnblogs.com&#x2F;" rel="noopener" target="_blank">l3m0n</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.yulegeyu.com/" title="http:&#x2F;&#x2F;www.yulegeyu.com&#x2F;" rel="noopener" target="_blank">雨神</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.wupco.cn/" title="http:&#x2F;&#x2F;www.wupco.cn&#x2F;" rel="noopener" target="_blank">wupco</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.bendawang.site/" title="http:&#x2F;&#x2F;www.bendawang.site&#x2F;" rel="noopener" target="_blank">bendawang</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://pcat.cnblogs.com/" title="http:&#x2F;&#x2F;pcat.cnblogs.com&#x2F;" rel="noopener" target="_blank">pcat</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.yqxiaojunjie.com/" title="http:&#x2F;&#x2F;www.yqxiaojunjie.com&#x2F;" rel="noopener" target="_blank">乐清小俊杰</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://lorexxar.cn/" title="https:&#x2F;&#x2F;lorexxar.cn&#x2F;" rel="noopener" target="_blank">LoRexxar</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://pupiles.com/" title="http:&#x2F;&#x2F;pupiles.com&#x2F;" rel="noopener" target="_blank">Pupil</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.venenof.com/" title="http:&#x2F;&#x2F;www.venenof.com&#x2F;" rel="noopener" target="_blank">venenof</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.bywalks.com/" title="http:&#x2F;&#x2F;www.bywalks.com&#x2F;" rel="noopener" target="_blank">bywalks</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://chybeta.github.io/" title="https:&#x2F;&#x2F;chybeta.github.io&#x2F;" rel="noopener" target="_blank">chybeta</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://blog.evalbug.com/" title="http:&#x2F;&#x2F;blog.evalbug.com&#x2F;" rel="noopener" target="_blank">yan表哥</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://pav1.cc/wordpress/" title="http:&#x2F;&#x2F;pav1.cc&#x2F;wordpress&#x2F;" rel="noopener" target="_blank">Pav1师傅</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.venenof.com/" title="http:&#x2F;&#x2F;www.venenof.com&#x2F;" rel="noopener" target="_blank">venenof7</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://www.smi1e.top/" title="https:&#x2F;&#x2F;www.smi1e.top&#x2F;" rel="noopener" target="_blank">smi1e</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://afang5472.blogspot.com/" title="https:&#x2F;&#x2F;afang5472.blogspot.com&#x2F;" rel="noopener" target="_blank">afang</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://rebirthwyw.com/" title="https:&#x2F;&#x2F;rebirthwyw.com&#x2F;" rel="noopener" target="_blank">rebirthwyw</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://ww9210.cn/" title="https:&#x2F;&#x2F;ww9210.cn&#x2F;" rel="noopener" target="_blank">ww9210</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://magicbluech.github.io/" title="https:&#x2F;&#x2F;magicbluech.github.io&#x2F;" rel="noopener" target="_blank">magicbluech</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://d1nn3r.github.io/" title="https:&#x2F;&#x2F;d1nn3r.github.io&#x2F;" rel="noopener" target="_blank">d1nn3r</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.rai4over.cn/" title="http:&#x2F;&#x2F;www.rai4over.cn&#x2F;" rel="noopener" target="_blank">rai4over</a>
+        </li>
+    </ul>
+  </div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+  <div class="beian"><a href="https://beian.miit.gov.cn/" rel="noopener" target="_blank">陕ICP备17014925号 </a>
+  </div>
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">wonderkun</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/fancybox/jquery.min.js"></script>
+  <script src="/lib/fancybox/jquery.fancybox.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+
+<script>
+NexT.utils.loadComments(document.querySelector('#valine-comments'), () => {
+  NexT.utils.getScript('//unpkg.com/valine/dist/Valine.min.js', () => {
+    var GUEST = ['nick', 'mail', 'link'];
+    var guest = 'nick,mail,link';
+    guest = guest.split(',').filter(item => {
+      return GUEST.includes(item);
+    });
+    new Valine({
+      el         : '#valine-comments',
+      verify     : true,
+      notify     : true,
+      appId      : 'T7sfFTnT9P1YS302SrmgIa3m-gzGzoHsz',
+      appKey     : 'WfIozMe5BYlmjQ5VMPJpu4G2',
+      placeholder: "ヾﾉ≧∀≦)o来啊，尽情吐槽啊!",
+      avatar     : 'mm',
+      meta       : guest,
+      pageSize   : '10' || 10,
+      visitor    : true,
+      lang       : 'zh-cn' || 'zh-cn',
+      path       : location.pathname,
+      recordIP   : false,
+      serverURLs : ''
+    });
+  }, window.Valine);
+});
+</script>
+
+</body>
+</html>

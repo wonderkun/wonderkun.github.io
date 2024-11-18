@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="https://fonts.font.im/css?family=Lato:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="/lib/fancybox/jquery.fancybox.min.css">
+
+<script data-ad-client="ca-pub-9381923643450020" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"blog.wonderkun.cc","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":false,"style":"mac"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":true,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="php pwn学习入门一 (基础环境搭建)本文是学习php二进制漏洞利用的第一篇文章，本文主要简单说一下基础的环境搭建问题以及一个简单的栈溢出的利用过程。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="php pwn学习入门一 (基础环境搭建)">
+<meta property="og:url" content="http://blog.wonderkun.cc/2020/05/12/php%20pwn%E5%AD%A6%E4%B9%A0%E5%85%A5%E9%97%A8%E4%B8%80/index.html">
+<meta property="og:site_name" content="wonderkun&#39;s | blog">
+<meta property="og:description" content="php pwn学习入门一 (基础环境搭建)本文是学习php二进制漏洞利用的第一篇文章，本文主要简单说一下基础的环境搭建问题以及一个简单的栈溢出的利用过程。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://pic.wonderkun.cc/uploads/2020/05/2020-05-13-12-26-17.png">
+<meta property="article:published_time" content="2020-05-12T11:57:14.000Z">
+<meta property="article:modified_time" content="2024-11-18T11:46:14.718Z">
+<meta property="article:author" content="wonderkun">
+<meta property="article:tag" content="php">
+<meta property="article:tag" content="web">
+<meta property="article:tag" content="pwn">
+<meta property="article:tag" content="学习记录">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://pic.wonderkun.cc/uploads/2020/05/2020-05-13-12-26-17.png">
+
+<link rel="canonical" href="http://blog.wonderkun.cc/2020/05/12/php%20pwn%E5%AD%A6%E4%B9%A0%E5%85%A5%E9%97%A8%E4%B8%80/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>php pwn学习入门一 (基础环境搭建) | wonderkun's | blog</title>
+  
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?1a23c3c0cdc421d3cfd3c63dc9721ffe";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">wonderkun's | blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">share with you!</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="archive fa-fw"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-sitemap">
+
+    <a href="/sitemap.xml" rel="section"><i class="sitemap fa-fw"></i>站点地图</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+  <a href="https://github.com/wonderkun" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://blog.wonderkun.cc/2020/05/12/php%20pwn%E5%AD%A6%E4%B9%A0%E5%85%A5%E9%97%A8%E4%B8%80/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="https://pic.wonderkun.cc/uploads/2016/04/09451H922-11.jpg">
+      <meta itemprop="name" content="wonderkun">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wonderkun's | blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          php pwn学习入门一 (基础环境搭建)
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-05-12 19:57:14" itemprop="dateCreated datePublished" datetime="2020-05-12T19:57:14+08:00">2020-05-12</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2024-11-18 19:46:14" itemprop="dateModified" datetime="2024-11-18T19:46:14+08:00">2024-11-18</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95/" itemprop="url" rel="index"><span itemprop="name">学习记录</span></a>
+                </span>
+            </span>
+
+          
+            <span id="/2020/05/12/php%20pwn%E5%AD%A6%E4%B9%A0%E5%85%A5%E9%97%A8%E4%B8%80/" class="post-meta-item leancloud_visitors" data-flag-title="php pwn学习入门一 (基础环境搭建)" title="阅读次数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span class="leancloud-visitors-count"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Valine：</span>
+    
+    <a title="valine" href="/2020/05/12/php%20pwn%E5%AD%A6%E4%B9%A0%E5%85%A5%E9%97%A8%E4%B8%80/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/2020/05/12/php%20pwn%E5%AD%A6%E4%B9%A0%E5%85%A5%E9%97%A8%E4%B8%80/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="php-pwn学习入门一-基础环境搭建"><a href="#php-pwn学习入门一-基础环境搭建" class="headerlink" title="php pwn学习入门一 (基础环境搭建)"></a>php pwn学习入门一 (基础环境搭建)</h2><p>本文是学习php二进制漏洞利用的第一篇文章，本文主要简单说一下基础的环境搭建问题以及一个简单的栈溢出的利用过程。</p>
+<a id="more"></a>
+
+<h3 id="php不同的运行模式"><a href="#php不同的运行模式" class="headerlink" title="php不同的运行模式"></a>php不同的运行模式</h3><p>SAPI(Server Application Programming Interface)是服务器端应用编程端口，它是应用层(比如 Apache，Nginx，CLI等)和 PHP 进行数据交互的入口。利用SAPI，php能够和其上的具体应用层进行解耦合，使得同一套php内核就可以和多种不同的应用层进行交互。在php的源代码sapi目录下有多种sapi的具体实现，比如cgi、cli、apache2handler、fpm等。</p>
+<p>根据不同的上层应用，php使用的SAPI也不同，常见的搭配有<code>apache2+apache2handler</code>，<code>nginx+fpm</code>，当然也存在 <code>apache2 + cgi</code>的模式，不过由于性能问题，现在已经基本见不到了。(defcon曾经出过一个赛题叫shellql，就是 <code>apache2 + cgi</code> 模式下写shellcode，此模式相对于其他两种会简单一些，此处就不讲了)。</p>
+<p>一般调试php，最好是能够自己重新编译一下php，这样的二进制有符号表，可以大大的提高了调试时的效率。</p>
+<p><code>nginx+fpm</code>的这种运行方式的调试我在复现CVE-2019-11043漏洞的那篇文章中说过，但是注意编译php时的参数选择，最主要的是<code>--enable-fpm --with-fpm-user=www-data --with-fpm-group=www-data</code>，其他的编译参数的含义可以直接使用<code>./configure --help</code>查看，偷懒的办法就是直接 pull php 官方提供的docker环境<code>php:version-fpm</code>，然后运行<code>php-config --configure-options</code>参考一下。</p>
+<p><code>apache2+apache2handler</code>运行模式下需要编译mod_php，就是俗称的 <code>libphp.so</code>，将它作为模块加载到apache2中执行，需要使用<code>--with-apxs2</code>来指定apache2的<code>apxs2</code>路径。在编译安装完成libphp.so之后，还无法启动apache2，因为php不支持apche2默认采用的<code>mpm_event</code>多线程管理技术，所以需要执行<code>a2dismod mpm_event &amp;&amp; a2enmod  mpm_prefork</code>来启用php支持的<code>mpm_prefork</code>，具体的详情可以参考php官方文档<a href="https://www.php.net/manual/en/install.unix.apache2.php" target="_blank" rel="noopener">https://www.php.net/manual/en/install.unix.apache2.php</a>。我也在这里提供了一个Dockerfile例子<a href="https://github.com/wonderkun/CTFENV/tree/master/libphp-extension-debug" target="_blank" rel="noopener">https://github.com/wonderkun/CTFENV/tree/master/libphp-extension-debug</a>。</p>
+<h3 id="De1CTF-mixture-题解"><a href="#De1CTF-mixture-题解" class="headerlink" title="De1CTF mixture 题解"></a>De1CTF mixture 题解</h3><p>这个题目按道理是比较简单的，但是当时做出来的人也不多，可能是被 <code>apache2+apache2handler</code> 这种运行模式吓到了，很有幸朋友 @lfy 在赛后给我提供了题目环境<a href="https://github.com/wonderkun/CTF_web/tree/master/PHP_PWN_LEARN/stack_overflow" target="_blank" rel="noopener">https://github.com/wonderkun/CTF_web/tree/master/PHP_PWN_LEARN/stack_overflow</a>。</p>
+<p>为了调试的方便，以debug模式启动apache2: </p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">apachectl -X &amp;</span><br><span class="line">gdb -q -p `pidof apache2`</span><br></pre></td></tr></table></figure>
+
+<p>此题目是一个基础的栈溢出利用，由于可以直接写栈，所以可以直接构造 ROP chian来实现任意命令执行。但是由于溢出点的函数栈帧偏移无法被泄露出来，而且是64位的非交互环境，也无法直接跳到one_gadget，所以任意命令执行的参数构造还是有点麻烦，但是pwn师傅找的 gadget <code>mov QWORD PTR [rdx],rdi ; ret</code>，来进行参数构造的方法真是香(我完全想不到)，主要代码如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> range(len(s)//<span class="number">8</span>+<span class="number">1</span>):</span><br><span class="line">    payload+=p64(pop_rdx)</span><br><span class="line">    payload+=p64(shell_addr+i*<span class="number">8</span>)</span><br><span class="line">    payload+=p64(pop_rdi)</span><br><span class="line">    payload+= bytes(s[i*<span class="number">8</span>:i*<span class="number">8</span>+<span class="number">8</span>].ljust(<span class="number">8</span>,<span class="string">"\x00"</span>),encoding=<span class="string">"latin-1"</span>)</span><br><span class="line">    payload+=p64(mov_rdx_rdi)</span><br></pre></td></tr></table></figure>
+
+<p>除此之外，在php扩展中，返回信息是通过结构体指针传出的，所以下图中的代码会修改栈上的数据，影响最后栈上的rop的执行，所以这里需要放一些无用的数据来防止破坏rop chain，在真实利用过程中此处使用4个pop操作进行绕过。</p>
+<p><img src="http://pic.wonderkun.cc/uploads/2020/05/2020-05-13-12-26-17.png" alt="http://pic.wonderkun.cc/uploads/2020/05/2020-05-13-12-26-17.png"></p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">pop4_ret=libc_addr+<span class="number">0x000000000002219e</span>  <span class="comment"># 0x7ffff711519e ;pop    r13 ; pop    r14 ;pop    r15;pop    rbp; ret</span></span><br><span class="line">payload=p64(pop_rdx)*<span class="number">10</span>+p64(pop4_ret)+p64(<span class="number">0</span>)*<span class="number">4</span> + p64(pop4_ret)+p64(<span class="number">0</span>)*<span class="number">4</span></span><br></pre></td></tr></table></figure>
+
+<p>最后一个问题是system函数中有指令 <code>movaps xmmword ptr [rsp+0x40], xmm0</code>可能会导致崩溃，查了一些资料才知道 <a href="http://blog.binpang.me/2019/07/12/stack-alignment/" target="_blank" rel="noopener">http://blog.binpang.me/2019/07/12/stack-alignment/</a>，<a href="http://homura.cc/blog/archives/168" target="_blank" rel="noopener">http://homura.cc/blog/archives/168</a>，这条指令要求 rsp必须是16字节对齐的，所以需要修改一下栈布局，让调用system函数的时候rsp是16字节对齐的即可。</p>
+
+        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+<ins class="adsbygoogle"
+     style="display:block; text-align:center;"
+     data-ad-layout="in-article"
+     data-ad-format="fluid"
+     data-ad-client="ca-pub-9381923643450020"
+     data-ad-slot="2524986173"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+
+        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+<!-- 页面嵌入广告 -->
+<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-9381923643450020"
+     data-ad-slot="3413388404"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/php/" rel="tag"># php</a>
+              <a href="/tags/web/" rel="tag"># web</a>
+              <a href="/tags/pwn/" rel="tag"># pwn</a>
+              <a href="/tags/%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95/" rel="tag"># 学习记录</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2020/04/24/%E9%A2%86%E5%85%88%E4%B8%80%E4%BB%A3%E7%9A%84%E6%8A%80%E6%9C%AF/" rel="prev" title="领先一代的技术">
+      <i class="fa fa-chevron-left"></i> 领先一代的技术
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2020/05/13/php%20pwn%E5%AD%A6%E4%B9%A0%E5%85%A5%E9%97%A8%E4%BA%8C/" rel="next" title="php pwn学习入门二 (格式化字符串漏洞)">
+      php pwn学习入门二 (格式化字符串漏洞) <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    <div class="comments" id="valine-comments"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#php-pwn学习入门一-基础环境搭建"><span class="nav-number">1.</span> <span class="nav-text">php pwn学习入门一 (基础环境搭建)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#php不同的运行模式"><span class="nav-number">1.1.</span> <span class="nav-text">php不同的运行模式</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#De1CTF-mixture-题解"><span class="nav-number">1.2.</span> <span class="nav-text">De1CTF mixture 题解</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="wonderkun"
+      src="https://pic.wonderkun.cc/uploads/2016/04/09451H922-11.jpg">
+  <p class="site-author-name" itemprop="name">wonderkun</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">58</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">7</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">46</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/wonderkun" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;wonderkun" rel="noopener" target="_blank"><i class="github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="/729173164@qq.com" title="E-Mail → 729173164@qq.com"><i class="QQ fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+  <div class="links-of-blogroll motion-element">
+    <div class="links-of-blogroll-title"><i class="fa fa-link fa-fw"></i>
+      友情链接
+    </div>
+    <ul class="links-of-blogroll-list">
+        <li class="links-of-blogroll-item">
+          <a href="https://www.leavesongs.com/" title="https:&#x2F;&#x2F;www.leavesongs.com&#x2F;" rel="noopener" target="_blank">phithon</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://www.bertramc.cn/" title="https:&#x2F;&#x2F;www.bertramc.cn&#x2F;" rel="noopener" target="_blank">berTrAM</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.cnblogs.com/" title="http:&#x2F;&#x2F;www.cnblogs.com&#x2F;" rel="noopener" target="_blank">l3m0n</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.yulegeyu.com/" title="http:&#x2F;&#x2F;www.yulegeyu.com&#x2F;" rel="noopener" target="_blank">雨神</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.wupco.cn/" title="http:&#x2F;&#x2F;www.wupco.cn&#x2F;" rel="noopener" target="_blank">wupco</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.bendawang.site/" title="http:&#x2F;&#x2F;www.bendawang.site&#x2F;" rel="noopener" target="_blank">bendawang</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://pcat.cnblogs.com/" title="http:&#x2F;&#x2F;pcat.cnblogs.com&#x2F;" rel="noopener" target="_blank">pcat</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.yqxiaojunjie.com/" title="http:&#x2F;&#x2F;www.yqxiaojunjie.com&#x2F;" rel="noopener" target="_blank">乐清小俊杰</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://lorexxar.cn/" title="https:&#x2F;&#x2F;lorexxar.cn&#x2F;" rel="noopener" target="_blank">LoRexxar</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://pupiles.com/" title="http:&#x2F;&#x2F;pupiles.com&#x2F;" rel="noopener" target="_blank">Pupil</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.venenof.com/" title="http:&#x2F;&#x2F;www.venenof.com&#x2F;" rel="noopener" target="_blank">venenof</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.bywalks.com/" title="http:&#x2F;&#x2F;www.bywalks.com&#x2F;" rel="noopener" target="_blank">bywalks</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://chybeta.github.io/" title="https:&#x2F;&#x2F;chybeta.github.io&#x2F;" rel="noopener" target="_blank">chybeta</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://blog.evalbug.com/" title="http:&#x2F;&#x2F;blog.evalbug.com&#x2F;" rel="noopener" target="_blank">yan表哥</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://pav1.cc/wordpress/" title="http:&#x2F;&#x2F;pav1.cc&#x2F;wordpress&#x2F;" rel="noopener" target="_blank">Pav1师傅</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.venenof.com/" title="http:&#x2F;&#x2F;www.venenof.com&#x2F;" rel="noopener" target="_blank">venenof7</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://www.smi1e.top/" title="https:&#x2F;&#x2F;www.smi1e.top&#x2F;" rel="noopener" target="_blank">smi1e</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://afang5472.blogspot.com/" title="https:&#x2F;&#x2F;afang5472.blogspot.com&#x2F;" rel="noopener" target="_blank">afang</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://rebirthwyw.com/" title="https:&#x2F;&#x2F;rebirthwyw.com&#x2F;" rel="noopener" target="_blank">rebirthwyw</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://ww9210.cn/" title="https:&#x2F;&#x2F;ww9210.cn&#x2F;" rel="noopener" target="_blank">ww9210</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://magicbluech.github.io/" title="https:&#x2F;&#x2F;magicbluech.github.io&#x2F;" rel="noopener" target="_blank">magicbluech</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://d1nn3r.github.io/" title="https:&#x2F;&#x2F;d1nn3r.github.io&#x2F;" rel="noopener" target="_blank">d1nn3r</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.rai4over.cn/" title="http:&#x2F;&#x2F;www.rai4over.cn&#x2F;" rel="noopener" target="_blank">rai4over</a>
+        </li>
+    </ul>
+  </div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+  <div class="beian"><a href="https://beian.miit.gov.cn/" rel="noopener" target="_blank">陕ICP备17014925号 </a>
+  </div>
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">wonderkun</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/fancybox/jquery.min.js"></script>
+  <script src="/lib/fancybox/jquery.fancybox.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+
+<script>
+NexT.utils.loadComments(document.querySelector('#valine-comments'), () => {
+  NexT.utils.getScript('//unpkg.com/valine/dist/Valine.min.js', () => {
+    var GUEST = ['nick', 'mail', 'link'];
+    var guest = 'nick,mail,link';
+    guest = guest.split(',').filter(item => {
+      return GUEST.includes(item);
+    });
+    new Valine({
+      el         : '#valine-comments',
+      verify     : true,
+      notify     : true,
+      appId      : 'T7sfFTnT9P1YS302SrmgIa3m-gzGzoHsz',
+      appKey     : 'WfIozMe5BYlmjQ5VMPJpu4G2',
+      placeholder: "ヾﾉ≧∀≦)o来啊，尽情吐槽啊!",
+      avatar     : 'mm',
+      meta       : guest,
+      pageSize   : '10' || 10,
+      visitor    : true,
+      lang       : 'zh-cn' || 'zh-cn',
+      path       : location.pathname,
+      recordIP   : false,
+      serverURLs : ''
+    });
+  }, window.Valine);
+});
+</script>
+
+</body>
+</html>

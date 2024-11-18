@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="https://fonts.font.im/css?family=Lato:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="/lib/fancybox/jquery.fancybox.min.css">
+
+<script data-ad-client="ca-pub-9381923643450020" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"blog.wonderkun.cc","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":false,"style":"mac"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":true,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="前言常规的shellcode注入一般是通过VirtualAllocEx,WriteProcessMemory 和 CreateRemoteThread 来实现的，但是这种方式是被安全软件重点监控的，同时微软提供的ETW接口也是可以轻易检测出上述方式进行代码注入的痕迹。本文的核心是讲解怎么利用具备 RWX-S 权限且自身有签名的白DLL进行一种比较隐蔽的shellcode注入，并讲解具体的代码实现以">
+<meta property="og:type" content="article">
+<meta property="og:title" content="滥用具备RWX-S权限且有签名的dll进行无感知的shellcode注入">
+<meta property="og:url" content="http://blog.wonderkun.cc/2022/04/16/%E6%BB%A5%E7%94%A8%E5%85%B7%E5%A4%87RWX-S%E6%9D%83%E9%99%90%E4%B8%94%E6%9C%89%E7%AD%BE%E5%90%8D%E7%9A%84dll%E8%BF%9B%E8%A1%8C%E6%97%A0%E6%84%9F%E7%9F%A5%E7%9A%84shellcode%E6%B3%A8%E5%85%A5/index.html">
+<meta property="og:site_name" content="wonderkun&#39;s | blog">
+<meta property="og:description" content="前言常规的shellcode注入一般是通过VirtualAllocEx,WriteProcessMemory 和 CreateRemoteThread 来实现的，但是这种方式是被安全软件重点监控的，同时微软提供的ETW接口也是可以轻易检测出上述方式进行代码注入的痕迹。本文的核心是讲解怎么利用具备 RWX-S 权限且自身有签名的白DLL进行一种比较隐蔽的shellcode注入，并讲解具体的代码实现以">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://pic.wonderkun.cc//uploads/note/202204272138408.png">
+<meta property="og:image" content="https://pic.wonderkun.cc//uploads/note/202204181752550.png">
+<meta property="og:image" content="https://pic.wonderkun.cc//uploads/note/202204182132688.png">
+<meta property="og:image" content="https://pic.wonderkun.cc//uploads/note/202204182137405.png">
+<meta property="og:image" content="https://pic.wonderkun.cc//uploads/note/202204182144848.png">
+<meta property="og:image" content="https://pic.wonderkun.cc//uploads/note/202204182158887.png">
+<meta property="og:image" content="https://pic.wonderkun.cc//uploads/note/202204182200356.png">
+<meta property="og:image" content="https://pic.wonderkun.cc//uploads/note/202204182203333.png">
+<meta property="og:image" content="https://pic.wonderkun.cc//uploads/note/202204182211988.png">
+<meta property="og:image" content="https://pic.wonderkun.cc//uploads/note/202204182220207.png">
+<meta property="og:image" content="https://pic.wonderkun.cc//uploads/note/202204182214469.png">
+<meta property="og:image" content="https://pic.wonderkun.cc//uploads/note/202204182217607.png">
+<meta property="og:image" content="https://pic.wonderkun.cc//uploads/note/202204182222967.png">
+<meta property="og:image" content="https://pic.wonderkun.cc//uploads/note/202204182224697.png">
+<meta property="og:image" content="https://pic.wonderkun.cc//uploads/note/202204190847820.png">
+<meta property="og:image" content="https://pic.wonderkun.cc//uploads/note/202204190848574.png">
+<meta property="article:published_time" content="2022-04-16T08:16:34.000Z">
+<meta property="article:modified_time" content="2024-11-18T11:46:14.722Z">
+<meta property="article:author" content="wonderkun">
+<meta property="article:tag" content="binary">
+<meta property="article:tag" content="windows">
+<meta property="article:tag" content="shellcode">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://pic.wonderkun.cc//uploads/note/202204272138408.png">
+
+<link rel="canonical" href="http://blog.wonderkun.cc/2022/04/16/%E6%BB%A5%E7%94%A8%E5%85%B7%E5%A4%87RWX-S%E6%9D%83%E9%99%90%E4%B8%94%E6%9C%89%E7%AD%BE%E5%90%8D%E7%9A%84dll%E8%BF%9B%E8%A1%8C%E6%97%A0%E6%84%9F%E7%9F%A5%E7%9A%84shellcode%E6%B3%A8%E5%85%A5/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>滥用具备RWX-S权限且有签名的dll进行无感知的shellcode注入 | wonderkun's | blog</title>
+  
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?1a23c3c0cdc421d3cfd3c63dc9721ffe";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">wonderkun's | blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">share with you!</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="archive fa-fw"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-sitemap">
+
+    <a href="/sitemap.xml" rel="section"><i class="sitemap fa-fw"></i>站点地图</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+  <a href="https://github.com/wonderkun" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://blog.wonderkun.cc/2022/04/16/%E6%BB%A5%E7%94%A8%E5%85%B7%E5%A4%87RWX-S%E6%9D%83%E9%99%90%E4%B8%94%E6%9C%89%E7%AD%BE%E5%90%8D%E7%9A%84dll%E8%BF%9B%E8%A1%8C%E6%97%A0%E6%84%9F%E7%9F%A5%E7%9A%84shellcode%E6%B3%A8%E5%85%A5/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="https://pic.wonderkun.cc/uploads/2016/04/09451H922-11.jpg">
+      <meta itemprop="name" content="wonderkun">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wonderkun's | blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          滥用具备RWX-S权限且有签名的dll进行无感知的shellcode注入
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2022-04-16 16:16:34" itemprop="dateCreated datePublished" datetime="2022-04-16T16:16:34+08:00">2022-04-16</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2024-11-18 19:46:14" itemprop="dateModified" datetime="2024-11-18T19:46:14+08:00">2024-11-18</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95/" itemprop="url" rel="index"><span itemprop="name">学习记录</span></a>
+                </span>
+            </span>
+
+          
+            <span id="/2022/04/16/%E6%BB%A5%E7%94%A8%E5%85%B7%E5%A4%87RWX-S%E6%9D%83%E9%99%90%E4%B8%94%E6%9C%89%E7%AD%BE%E5%90%8D%E7%9A%84dll%E8%BF%9B%E8%A1%8C%E6%97%A0%E6%84%9F%E7%9F%A5%E7%9A%84shellcode%E6%B3%A8%E5%85%A5/" class="post-meta-item leancloud_visitors" data-flag-title="滥用具备RWX-S权限且有签名的dll进行无感知的shellcode注入" title="阅读次数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span class="leancloud-visitors-count"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Valine：</span>
+    
+    <a title="valine" href="/2022/04/16/%E6%BB%A5%E7%94%A8%E5%85%B7%E5%A4%87RWX-S%E6%9D%83%E9%99%90%E4%B8%94%E6%9C%89%E7%AD%BE%E5%90%8D%E7%9A%84dll%E8%BF%9B%E8%A1%8C%E6%97%A0%E6%84%9F%E7%9F%A5%E7%9A%84shellcode%E6%B3%A8%E5%85%A5/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/2022/04/16/%E6%BB%A5%E7%94%A8%E5%85%B7%E5%A4%87RWX-S%E6%9D%83%E9%99%90%E4%B8%94%E6%9C%89%E7%AD%BE%E5%90%8D%E7%9A%84dll%E8%BF%9B%E8%A1%8C%E6%97%A0%E6%84%9F%E7%9F%A5%E7%9A%84shellcode%E6%B3%A8%E5%85%A5/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>常规的shellcode注入一般是通过<code>VirtualAllocEx</code>,<code>WriteProcessMemory</code> 和 <code>CreateRemoteThread</code> 来实现的，但是这种方式是被安全软件重点监控的，同时微软提供的ETW接口也是可以轻易检测出上述方式进行代码注入的痕迹。本文的核心是讲解怎么利用具备 RWX-S 权限且自身有签名的白DLL进行一种比较隐蔽的shellcode注入，<br>并讲解具体的代码实现以及在写代码实现的过程中遇到的坑。本方法是由文章提出的：<a href="https://billdemirkapi.me/sharing-is-caring-abusing-shared-sections-for-code-injection/" target="_blank" rel="noopener">https://billdemirkapi.me/sharing-is-caring-abusing-shared-sections-for-code-injection/</a> ，详情可以参考此文章。</p>
+<p>我的知识星球开启内测了，用微信扫描下面的小程序就可以免费加入，来和我一起学习安全技术。(在圈子内可以下载到源代码)</p>
+<p><img src="https://pic.wonderkun.cc//uploads/note/202204272138408.png" alt=""></p>
+<a id="more"></a>
+<h2 id="基础知识回顾"><a href="#基础知识回顾" class="headerlink" title="基础知识回顾"></a>基础知识回顾</h2><p>PE文件的每个section都具备自己的权限，表明他被映射到虚拟内存之后的操作权限，也就是 <code>SECTION_CHARACTERISTICS</code> 这个字段，占四个字节。<br>通常来讲 <code>.text</code> 节区只具备 <code>IMAGE_SCN_MEM_READ</code> 和 <code>IMAGE_SCN_MEM_EXECUTE</code> 权限，<code>.data</code> 节区一般只具备 <code>IMAGE_SCN_MEM_READ</code>,<code>IMAGE_SCN_MEM_WRITE</code> 权限。 当PE文件被映射到内存后，对一个不具备 <code>IMAGE_SCN_MEM_WRITE</code> 权限的节区进行写操作或者对一个没有 <code>IMAGE_SCN_MEM_EXECUTE</code> 的节区进行执行时，都会报异常。</p>
+<p><img src="https://pic.wonderkun.cc//uploads/note/202204181752550.png" alt=""></p>
+<p>看微软的文档：<a href="https://docs.microsoft.com/en-us/windows/win32/debug/pe-format#section-flags" target="_blank" rel="noopener">document</a>, 会发现一个权限叫做 <code>IMAGE_SCN_MEM_SHARED</code>。 那共享到底意味着什么？据测试显示：<strong>具备此权限的section会被当前系统所有的进程共享，如果进程A和进程B都加载了具备IMAGE_SCN_MEM_SHARED权限的模块C，那么模块C的此section在系统层面上只有一份，这也就意味着A进程对C的修改（有IMAGE_SCN_MEM_WRITE权限）会影响到B进程</strong></p>
+<p>那么思路就来了，如果一个模块的某个节区是具备 <code>RWX-S</code> 权限，我只需要把它加载到进程A中，然后修改它的内容为恶意代码，然后想办法让他加载到进程B中，就可以实现在B中执行恶意代码了， 那这种利用主要分为如下几个步骤：</p>
+<figure class="highlight angelscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">1.</span> 找到一个有签名的并且具备 RWX-S 权限的dll。(不具备RWX-S权限也可以，可以patch系统内的已签名的dll，但是这样会破坏签名，不够隐蔽)</span><br><span class="line"><span class="number">2.</span> 将DLL加载到进程A的内存里，修改 RWX-S 权限的section的代码进行patch</span><br><span class="line"><span class="number">3.</span> 调用  SetWindowsHookEx，使用DLL中的某个函数指针作为 HOOKPROC 参数，使得DLL被注入到目标进程B中。</span><br><span class="line"><span class="number">4.</span> 目标进程B加载DLL，并触发恶意代码执行。</span><br></pre></td></tr></table></figure>
+
+<p>至于怎么去找一个具备 RWX-S权限的签名dll，原文作者也提供了一个yara规则在virustotal上来筛选，不再细说:</p>
+<figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">import <span class="string">"pe"</span></span><br><span class="line"></span><br><span class="line">rule RWX_S_Signed_Search</span><br><span class="line">&#123;</span><br><span class="line">	meta:</span><br><span class="line">		description = <span class="string">"Detects RWX-S signed binaries. This only verifies that the image contains a signature, not that it is valid."</span></span><br><span class="line">		author = <span class="string">"Bill Demirkapi"</span></span><br><span class="line">	condition:</span><br><span class="line">		<span class="keyword">for</span> any <span class="selector-tag">i</span> <span class="keyword">in</span> (<span class="number">0</span>.<span class="selector-class">.pe</span><span class="selector-class">.number_of_sections</span> - <span class="number">1</span>): (</span><br><span class="line">			(pe<span class="selector-class">.sections</span>[i]<span class="selector-class">.characteristics</span> &amp; pe.SECTION_MEM_READ) and</span><br><span class="line">			(pe<span class="selector-class">.sections</span>[i]<span class="selector-class">.characteristics</span> &amp; pe.SECTION_MEM_EXECUTE) and</span><br><span class="line">			(pe<span class="selector-class">.sections</span>[i]<span class="selector-class">.characteristics</span> &amp; pe.SECTION_MEM_WRITE) and</span><br><span class="line">			(pe<span class="selector-class">.sections</span>[i]<span class="selector-class">.characteristics</span> &amp; pe.SECTION_MEM_SHARED) )</span><br><span class="line">		and pe<span class="selector-class">.number_of_signatures</span> &gt; <span class="number">0</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里提供一个我找到的DLL: <a href="https://www.virustotal.com/gui/file/855277c0aeea89d17a07e27e9cf79c98b26e70e8e57561c4b592097e0032c4e9，" target="_blank" rel="noopener">https://www.virustotal.com/gui/file/855277c0aeea89d17a07e27e9cf79c98b26e70e8e57561c4b592097e0032c4e9，</a><br>以后的代码都是基于此DLL完成的。</p>
+<p>其实这里面最关键的是步骤二，主要涉及两个问题：</p>
+<ol>
+<li>patch什么位置可以保证此DLL被进程B加载之后，恶意代码一定会被执行</li>
+<li>patch成什么样的代码才能保证进程B不会因为运行异常而崩溃</li>
+</ol>
+<p>先回答问题1：当前DLL被进程B加载后一定会被执行的有两个函数，分别是 <code>DllMain</code> 和 设置给 <code>SetWindowsHookEx</code> 的消息hook函数, 我觉得这两个函数中<code>DllMain</code>更合适被patch为恶意代码，理由是 <code>hook procedure</code> 在每次有对应消息需要处理的时候都会被调用，这会导致我们的恶意代码被执行很多次，这显然不是我们想要的。同时 <code>DllMain</code> 在被进程加载的那一刻就会执行，能够保证我们的shellcode在第一时间被执行。</p>
+<h2 id="patch-DllMain为恶意代码"><a href="#patch-DllMain为恶意代码" class="headerlink" title="patch DllMain为恶意代码"></a>patch DllMain为恶意代码</h2><p>此时就有人说了，patch DllMain很简单啊，加载这个dll之后，获取 imagebase，然后解析PE头找到entrypoint，将 msfvenom 生成的shellcode直接复制 imagebase + entrypoint 的位置就可以了。 开始我也是这么认为的，但是事实证明，这样不行。</p>
+<p>我们来看 DllMain的函数声明：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">BOOL WINAPI <span class="title">DllMain</span><span class="params">(</span></span></span><br><span class="line"><span class="function"><span class="params">    HINSTANCE hinstDLL,  <span class="comment">// handle to DLL module</span></span></span></span><br><span class="line"><span class="function"><span class="params">    DWORD fdwReason,     <span class="comment">// reason for calling function</span></span></span></span><br><span class="line"><span class="function"><span class="params">    LPVOID lpReserved )</span>  <span class="comment">// reserved</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">// Perform actions based on the reason for calling.</span></span><br><span class="line">    <span class="keyword">switch</span>( fdwReason ) </span><br><span class="line">    &#123; </span><br><span class="line">        <span class="keyword">case</span> DLL_PROCESS_ATTACH:</span><br><span class="line">         <span class="comment">// Initialize once for each new process.</span></span><br><span class="line">         <span class="comment">// Return FALSE to fail DLL load.</span></span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">case</span> DLL_THREAD_ATTACH:</span><br><span class="line">         <span class="comment">// Do thread-specific initialization.</span></span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">case</span> DLL_THREAD_DETACH:</span><br><span class="line">         <span class="comment">// Do thread-specific cleanup.</span></span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">case</span> DLL_PROCESS_DETACH:</span><br><span class="line">         <span class="comment">// Perform any necessary cleanup.</span></span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> TRUE;  <span class="comment">// Successful DLL_PROCESS_ATTACH.</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>此函是有返回值的，当对应的 <code>fdwReason</code> 操作成功后，必须返回 TRUE/FALSE。 此函数直接被替换为 meterpreter 的 shellcode，就会导致此函数无法返回。这种情况下的DLL加载是在系统新开的一个线程中完成的，如果 <code>DllMain</code> 回调函数不返回，系统就会kill掉这个线程，以至于我们自己的恶意代码无法持续的执行，那解决办法就是要在 <code>DllMain</code> 中新开一个线程，在线程里执行恶意代码，然后此函数返回。</p>
+<p><strong>由于这一段代码需要在B进程的进程空间中执行，此时没有任何地址相关的信息，所以这一段代码必须要写成shellcode才能正常执行</strong><br>由于要自己写一段shellcode，那我们就没有必要再去使用 <code>meterpreter</code> 的shellcode了，也就是说这一段代码要完成 <code>meterpreter</code> 第一阶段的功能，直接下载stage2 的代码，然后使用 <code>CreateThread</code>进行执行，所以基本的代码框架：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">BOOL WINAPI <span class="title">DllMain</span><span class="params">(</span></span></span><br><span class="line"><span class="function"><span class="params">    HINSTANCE hinstDLL,  <span class="comment">// handle to DLL module</span></span></span></span><br><span class="line"><span class="function"><span class="params">    DWORD fdwReason,     <span class="comment">// reason for calling function</span></span></span></span><br><span class="line"><span class="function"><span class="params">    LPVOID lpReserved )</span>  <span class="comment">// reserved</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">switch</span>( fdwReason ) </span><br><span class="line">    &#123; </span><br><span class="line">        <span class="keyword">case</span> DLL_PROCESS_ATTACH:&#123;</span><br><span class="line">            <span class="comment">// 1. 加载 ws2_32.dll </span></span><br><span class="line">            <span class="comment">// 2. 获取与socket相关的函数的地址</span></span><br><span class="line">            <span class="comment">// 3. 连接socket, 如果连接失败，返回FALSE </span></span><br><span class="line">            <span class="comment">// 4. 申请内存空间,下载payload</span></span><br><span class="line">            <span class="comment">// 5. 调用 CreateThread 执行payload ，然后返回 TRUE</span></span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">case</span> DLL_THREAD_ATTACH:</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        <span class="keyword">case</span> DLL_THREAD_DETACH:</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        <span class="keyword">case</span> DLL_PROCESS_DETACH:</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> TRUE;  <span class="comment">// Successful DLL_PROCESS_ATTACH.</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>要完成这样一段shellcode，我们是需要再创建一个项目，然后编写相关的c或者汇编代码，编译完成之后把相对于的16进制copy到当前的项目中来，这样做一方面比较麻烦，容易出错；另一方面不太灵活，不便于替换c2地址等操作。</p>
+<p><strong>我想要就在当前项目中完成，编译完之后，运行时patch进去，要怎么做呢？</strong></p>
+<p>仔细想一下，当 <code>DllMain</code>回调函数被执行的时候，难道真的任何地址信息都没有提供吗？其实不然。<br>看 <code>DllMain</code> 的第一个参数 <code>hinstDLL</code> 的值其实就是当前被加载模块的基址，有了这个基址，理论上我们就可以访问到当前模块任何地址空间数据。</p>
+<p>那思路有了: 我们可以让进程A向 DLL 相对于 <code>imageBase</code> 固定偏移的地方写入一些必要的函数指针和数据，例如<code>LoadLibraryA</code>，<code>GetProcAddress</code>的函数的地址，以及 c2 的ip 和端口信息，然后 <code>DllMain</code> 被调用的时候会到指定偏移的地方读取这些数据，完成自己的功能，示意图如下：</p>
+<p><img src="https://pic.wonderkun.cc//uploads/note/202204182132688.png" alt=""></p>
+<p>下面实现就比较简单了，首先需要定义一下要向DLL中写入的数据的结构：</p>
+<p><img src="https://pic.wonderkun.cc//uploads/note/202204182137405.png" alt=""></p>
+<p>其中 <code>fn</code> 开头的存储的是对应函数的指针，<code>char</code>数组保存的是一些字符串信息，便于利用这些字符串获取到socket相关的函数的地址。最后 host 和 port 存储的c2的信息，flag是<code>meterpreter</code>第一阶段向第二阶段的传参约定数据。不了解的可以去读一下 <code>meterpreter</code>的源码，这里不再细说他的相关细节。</p>
+<p>接下来将这个结构体初始化，然后放到固定偏移 <code>OFFSET_TO_SHELLCODE</code> 上去：</p>
+<p><img src="https://pic.wonderkun.cc//uploads/note/202204182144848.png" alt=""></p>
+<p>然后开始编写伪造的DllMain，也就是shellcode的主体代码，如下:</p>
+<p>首先读取指定偏移获取之前存储的数据：</p>
+<p><img src="https://pic.wonderkun.cc//uploads/note/202204182158887.png" alt=""></p>
+<p>然后当 <code>DLL_PROCESS_ATTACH</code> 发生时，调用执行相关的操作加载远程的恶意代码：</p>
+<p><img src="https://pic.wonderkun.cc//uploads/note/202204182200356.png" alt=""></p>
+<p>然后将这段代码patch到DllMain的位置：</p>
+<p><img src="https://pic.wonderkun.cc//uploads/note/202204182203333.png" alt=""></p>
+<p><code>ShellCodeEnd</code> 是我定义的一个空的函数，他紧跟在<code>myDllMain</code>后面，主要是为了帮助我们定位出函数<code>myDllMain</code>在文件中的大小。</p>
+<h2 id="patch-hook-procedure-函数防止程序崩溃"><a href="#patch-hook-procedure-函数防止程序崩溃" class="headerlink" title="patch hook procedure 函数防止程序崩溃"></a>patch hook procedure 函数防止程序崩溃</h2><p>只经过上述patch的DLL是可以满足执行恶意代码的功能，但是会引起被注入程序的异常或者崩溃，因为我们是调用 <code>SetWindowsHookEx</code> 设置的消息钩子，我们传入的 <code>hook procedure</code> 也并非一个钩子处理函数，它并不会调用 <code>CallNextHookEx</code> ，就导致被注入的进程无法响应相关的消息，甚至运行异常代码而崩溃，这样会导致获取的session挂掉， 因此这里也需要对 <code>hook procedure</code> 进行代码patch。</p>
+<p><img src="https://pic.wonderkun.cc//uploads/note/202204182211988.png" alt=""></p>
+<p>这里就是使用传统的shellcode的写法，就是获取 PEB ，遍历dll，然后加载 <code>CallNextHookEx</code> 并调用，这里使用了 <code>lazy_import</code> 的宏 <code>LI_FN</code>,他是可以自动展开为shellcode的，不需要自己再写了。</p>
+<h2 id="主程序"><a href="#主程序" class="headerlink" title="主程序"></a>主程序</h2><p>加载相关 RWX-S的模块，解析PE结构，获取相关的地址：</p>
+<p><img src="https://pic.wonderkun.cc//uploads/note/202204182220207.png" alt=""></p>
+<p>设置消息钩子，进行dll注入。</p>
+<p><img src="https://pic.wonderkun.cc//uploads/note/202204182214469.png" alt=""></p>
+<p>我这里sleep了200秒，然后卸载掉钩子，这个时间长度足够 <code>explorer.exe</code> 触发 <code>WH_GETMESSAGE</code> 消息，并上线了。</p>
+<p><img src="https://pic.wonderkun.cc//uploads/note/202204182217607.png" alt=""></p>
+<p>当钩子被卸载之后，<code>KbdEditDllPremium.dll</code> 也会从内存中卸载，此时主程序其实可以直接删掉 <code>KbdEditDllPremium.dll</code>进行彻底的毁尸灭迹。</p>
+<p><img src="https://pic.wonderkun.cc//uploads/note/202204182222967.png" alt=""></p>
+<p>内存里虽然已经没有了 <code>KbdEditDllPremium.dll</code> 模块，但是却依然不影响我们的session交互，因为此时的恶意代码运行在 <code>explorer.exe</code> 申请的堆空间上。</p>
+<p><img src="https://pic.wonderkun.cc//uploads/note/202204182224697.png" alt=""></p>
+<p>这对于入侵痕迹的隐藏是非常有用的一个技巧。</p>
+<h2 id="补充说明"><a href="#补充说明" class="headerlink" title="补充说明"></a>补充说明</h2><p>最后还需要再补充一下，因为要在此项目中要编译生成shellcode，所以要对一些编译选项就行一些调整，防止生成的代码无法在其他进程空间中运行。</p>
+<p><img src="https://pic.wonderkun.cc//uploads/note/202204190847820.png" alt=""></p>
+<p>运行库选择MT，然后禁用GS保护。</p>
+<p><img src="https://pic.wonderkun.cc//uploads/note/202204190848574.png" alt=""></p>
+<p>代码优化也需要调整一下。</p>
+<p><strong>最后扩展一句：如果无法找到一个已经签名的RWX-S权限的dll，我们甚至可以修改系统的dll添加S权限，然后保存到临时目录，注入完成之后删除掉。</strong></p>
+<p>为了避免安全风险，代码以及有RWX-S权限的签名DLL就不发源文件了，如果感兴趣，可以联系我获取。</p>
+
+        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+<ins class="adsbygoogle"
+     style="display:block; text-align:center;"
+     data-ad-layout="in-article"
+     data-ad-format="fluid"
+     data-ad-client="ca-pub-9381923643450020"
+     data-ad-slot="2524986173"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+
+        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+<!-- 页面嵌入广告 -->
+<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-9381923643450020"
+     data-ad-slot="3413388404"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/binary/" rel="tag"># binary</a>
+              <a href="/tags/windows/" rel="tag"># windows</a>
+              <a href="/tags/shellcode/" rel="tag"># shellcode</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2021/12/10/%E6%B7%B1%E5%85%A5%E6%8C%96%E6%8E%98bash%E5%8F%8D%E5%BC%B9shell%E8%83%8C%E5%90%8E%E7%9A%84%E7%A7%98%E5%AF%86/" rel="prev" title="深入挖掘bash反弹shell背后的密码">
+      <i class="fa fa-chevron-left"></i> 深入挖掘bash反弹shell背后的密码
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2022/12/23/%E7%A4%BE%E4%BC%9A%E5%AD%A6%E8%A7%92%E5%BA%A6%E7%9C%8B%E6%81%8B%E7%88%B1%E5%85%B3%E7%B3%BB/" rel="next" title="社会学角度看恋爱关系">
+      社会学角度看恋爱关系 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    <div class="comments" id="valine-comments"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#前言"><span class="nav-number">1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#基础知识回顾"><span class="nav-number">2.</span> <span class="nav-text">基础知识回顾</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#patch-DllMain为恶意代码"><span class="nav-number">3.</span> <span class="nav-text">patch DllMain为恶意代码</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#patch-hook-procedure-函数防止程序崩溃"><span class="nav-number">4.</span> <span class="nav-text">patch hook procedure 函数防止程序崩溃</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#主程序"><span class="nav-number">5.</span> <span class="nav-text">主程序</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#补充说明"><span class="nav-number">6.</span> <span class="nav-text">补充说明</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="wonderkun"
+      src="https://pic.wonderkun.cc/uploads/2016/04/09451H922-11.jpg">
+  <p class="site-author-name" itemprop="name">wonderkun</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">58</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">7</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">46</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/wonderkun" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;wonderkun" rel="noopener" target="_blank"><i class="github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="/729173164@qq.com" title="E-Mail → 729173164@qq.com"><i class="QQ fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+  <div class="links-of-blogroll motion-element">
+    <div class="links-of-blogroll-title"><i class="fa fa-link fa-fw"></i>
+      友情链接
+    </div>
+    <ul class="links-of-blogroll-list">
+        <li class="links-of-blogroll-item">
+          <a href="https://www.leavesongs.com/" title="https:&#x2F;&#x2F;www.leavesongs.com&#x2F;" rel="noopener" target="_blank">phithon</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://www.bertramc.cn/" title="https:&#x2F;&#x2F;www.bertramc.cn&#x2F;" rel="noopener" target="_blank">berTrAM</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.cnblogs.com/" title="http:&#x2F;&#x2F;www.cnblogs.com&#x2F;" rel="noopener" target="_blank">l3m0n</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.yulegeyu.com/" title="http:&#x2F;&#x2F;www.yulegeyu.com&#x2F;" rel="noopener" target="_blank">雨神</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.wupco.cn/" title="http:&#x2F;&#x2F;www.wupco.cn&#x2F;" rel="noopener" target="_blank">wupco</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.bendawang.site/" title="http:&#x2F;&#x2F;www.bendawang.site&#x2F;" rel="noopener" target="_blank">bendawang</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://pcat.cnblogs.com/" title="http:&#x2F;&#x2F;pcat.cnblogs.com&#x2F;" rel="noopener" target="_blank">pcat</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.yqxiaojunjie.com/" title="http:&#x2F;&#x2F;www.yqxiaojunjie.com&#x2F;" rel="noopener" target="_blank">乐清小俊杰</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://lorexxar.cn/" title="https:&#x2F;&#x2F;lorexxar.cn&#x2F;" rel="noopener" target="_blank">LoRexxar</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://pupiles.com/" title="http:&#x2F;&#x2F;pupiles.com&#x2F;" rel="noopener" target="_blank">Pupil</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.venenof.com/" title="http:&#x2F;&#x2F;www.venenof.com&#x2F;" rel="noopener" target="_blank">venenof</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.bywalks.com/" title="http:&#x2F;&#x2F;www.bywalks.com&#x2F;" rel="noopener" target="_blank">bywalks</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://chybeta.github.io/" title="https:&#x2F;&#x2F;chybeta.github.io&#x2F;" rel="noopener" target="_blank">chybeta</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://blog.evalbug.com/" title="http:&#x2F;&#x2F;blog.evalbug.com&#x2F;" rel="noopener" target="_blank">yan表哥</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://pav1.cc/wordpress/" title="http:&#x2F;&#x2F;pav1.cc&#x2F;wordpress&#x2F;" rel="noopener" target="_blank">Pav1师傅</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.venenof.com/" title="http:&#x2F;&#x2F;www.venenof.com&#x2F;" rel="noopener" target="_blank">venenof7</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://www.smi1e.top/" title="https:&#x2F;&#x2F;www.smi1e.top&#x2F;" rel="noopener" target="_blank">smi1e</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://afang5472.blogspot.com/" title="https:&#x2F;&#x2F;afang5472.blogspot.com&#x2F;" rel="noopener" target="_blank">afang</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://rebirthwyw.com/" title="https:&#x2F;&#x2F;rebirthwyw.com&#x2F;" rel="noopener" target="_blank">rebirthwyw</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://ww9210.cn/" title="https:&#x2F;&#x2F;ww9210.cn&#x2F;" rel="noopener" target="_blank">ww9210</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://magicbluech.github.io/" title="https:&#x2F;&#x2F;magicbluech.github.io&#x2F;" rel="noopener" target="_blank">magicbluech</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://d1nn3r.github.io/" title="https:&#x2F;&#x2F;d1nn3r.github.io&#x2F;" rel="noopener" target="_blank">d1nn3r</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.rai4over.cn/" title="http:&#x2F;&#x2F;www.rai4over.cn&#x2F;" rel="noopener" target="_blank">rai4over</a>
+        </li>
+    </ul>
+  </div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+  <div class="beian"><a href="https://beian.miit.gov.cn/" rel="noopener" target="_blank">陕ICP备17014925号 </a>
+  </div>
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">wonderkun</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/fancybox/jquery.min.js"></script>
+  <script src="/lib/fancybox/jquery.fancybox.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+
+<script>
+NexT.utils.loadComments(document.querySelector('#valine-comments'), () => {
+  NexT.utils.getScript('//unpkg.com/valine/dist/Valine.min.js', () => {
+    var GUEST = ['nick', 'mail', 'link'];
+    var guest = 'nick,mail,link';
+    guest = guest.split(',').filter(item => {
+      return GUEST.includes(item);
+    });
+    new Valine({
+      el         : '#valine-comments',
+      verify     : true,
+      notify     : true,
+      appId      : 'T7sfFTnT9P1YS302SrmgIa3m-gzGzoHsz',
+      appKey     : 'WfIozMe5BYlmjQ5VMPJpu4G2',
+      placeholder: "ヾﾉ≧∀≦)o来啊，尽情吐槽啊!",
+      avatar     : 'mm',
+      meta       : guest,
+      pageSize   : '10' || 10,
+      visitor    : true,
+      lang       : 'zh-cn' || 'zh-cn',
+      path       : location.pathname,
+      recordIP   : false,
+      serverURLs : ''
+    });
+  }, window.Valine);
+});
+</script>
+
+</body>
+</html>

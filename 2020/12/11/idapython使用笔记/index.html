@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="https://fonts.font.im/css?family=Lato:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="/lib/fancybox/jquery.fancybox.min.css">
+
+<script data-ad-client="ca-pub-9381923643450020" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"blog.wonderkun.cc","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":false,"style":"mac"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":true,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="idapython的学习资料推荐 《ida权威指南第二版》 [https:&#x2F;&#x2F;wooyun.js.org&#x2F;drops&#x2F;IDAPython%20%E8%AE%A9%E4%BD%A0%E7%9A%84%E7%94%9F%E6%B4%BB%E6%9B%B4%E6%BB%8B%E6%B6%A6%20part1%20and%20part2.html](https:&#x2F;&#x2F;wooyun.js.org&#x2F;drops&#x2F;">
+<meta property="og:type" content="article">
+<meta property="og:title" content="idapython使用笔记">
+<meta property="og:url" content="http://blog.wonderkun.cc/2020/12/11/idapython%E4%BD%BF%E7%94%A8%E7%AC%94%E8%AE%B0/index.html">
+<meta property="og:site_name" content="wonderkun&#39;s | blog">
+<meta property="og:description" content="idapython的学习资料推荐 《ida权威指南第二版》 [https:&#x2F;&#x2F;wooyun.js.org&#x2F;drops&#x2F;IDAPython%20%E8%AE%A9%E4%BD%A0%E7%9A%84%E7%94%9F%E6%B4%BB%E6%9B%B4%E6%BB%8B%E6%B6%A6%20part1%20and%20part2.html](https:&#x2F;&#x2F;wooyun.js.org&#x2F;drops&#x2F;">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://pic.wonderkun.cc/uploads/2020/12/Snipaste_2020-01-29_21-46-07.png">
+<meta property="article:published_time" content="2020-12-11T11:57:14.000Z">
+<meta property="article:modified_time" content="2024-11-18T11:46:14.718Z">
+<meta property="article:author" content="wonderkun">
+<meta property="article:tag" content="binary">
+<meta property="article:tag" content="pwn">
+<meta property="article:tag" content="学习记录">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://pic.wonderkun.cc/uploads/2020/12/Snipaste_2020-01-29_21-46-07.png">
+
+<link rel="canonical" href="http://blog.wonderkun.cc/2020/12/11/idapython%E4%BD%BF%E7%94%A8%E7%AC%94%E8%AE%B0/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>idapython使用笔记 | wonderkun's | blog</title>
+  
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?1a23c3c0cdc421d3cfd3c63dc9721ffe";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">wonderkun's | blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">share with you!</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="archive fa-fw"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-sitemap">
+
+    <a href="/sitemap.xml" rel="section"><i class="sitemap fa-fw"></i>站点地图</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+  <a href="https://github.com/wonderkun" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://blog.wonderkun.cc/2020/12/11/idapython%E4%BD%BF%E7%94%A8%E7%AC%94%E8%AE%B0/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="https://pic.wonderkun.cc/uploads/2016/04/09451H922-11.jpg">
+      <meta itemprop="name" content="wonderkun">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wonderkun's | blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          idapython使用笔记
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-12-11 19:57:14" itemprop="dateCreated datePublished" datetime="2020-12-11T19:57:14+08:00">2020-12-11</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2024-11-18 19:46:14" itemprop="dateModified" datetime="2024-11-18T19:46:14+08:00">2024-11-18</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95/" itemprop="url" rel="index"><span itemprop="name">学习记录</span></a>
+                </span>
+            </span>
+
+          
+            <span id="/2020/12/11/idapython%E4%BD%BF%E7%94%A8%E7%AC%94%E8%AE%B0/" class="post-meta-item leancloud_visitors" data-flag-title="idapython使用笔记" title="阅读次数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span class="leancloud-visitors-count"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Valine：</span>
+    
+    <a title="valine" href="/2020/12/11/idapython%E4%BD%BF%E7%94%A8%E7%AC%94%E8%AE%B0/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/2020/12/11/idapython%E4%BD%BF%E7%94%A8%E7%AC%94%E8%AE%B0/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h3 id="idapython的学习资料推荐"><a href="#idapython的学习资料推荐" class="headerlink" title="idapython的学习资料推荐"></a>idapython的学习资料推荐</h3><ol>
+<li>《ida权威指南第二版》</li>
+<li>[<a href="https://wooyun.js.org/drops/IDAPython%20%E8%AE%A9%E4%BD%A0%E7%9A%84%E7%94%9F%E6%B4%BB%E6%9B%B4%E6%BB%8B%E6%B6%A6%20part1%20and%20part2.html]" target="_blank" rel="noopener">https://wooyun.js.org/drops/IDAPython%20%E8%AE%A9%E4%BD%A0%E7%9A%84%E7%94%9F%E6%B4%BB%E6%9B%B4%E6%BB%8B%E6%B6%A6%20part1%20and%20part2.html]</a>(<a href="https://wooyun.js.org/drops/IDAPython" target="_blank" rel="noopener">https://wooyun.js.org/drops/IDAPython</a> 让你的生活更滋润 part1 and part2.html) </li>
+<li><a href="https://cartermgj.github.io/2017/10/10/ida-python/" target="_blank" rel="noopener">https://cartermgj.github.io/2017/10/10/ida-python/</a> </li>
+</ol>
+<a id="more"></a>
+
+<ol start="4">
+<li><a href="https://www.hex-rays.com/products/ida/support/idapython_docs/" target="_blank" rel="noopener">https://www.hex-rays.com/products/ida/support/idapython_docs/</a> </li>
+<li>《idapython book》有中文版本的翻译</li>
+<li><a href="https://bbs.pediy.com/thread-225091.htm" target="_blank" rel="noopener">https://bbs.pediy.com/thread-225091.htm</a>  python模拟执行x86，基于idapython</li>
+<li>《The Beginner’s Guide to IDAPython version 6.0》</li>
+</ol>
+<h3 id="ida-python2-and-python3-switch"><a href="#ida-python2-and-python3-switch" class="headerlink" title="ida python2 and python3 switch"></a>ida python2 and python3 switch</h3><p>You have chosen to enable IDAPython 2.  The IDAPython 3 plugins have been renamed to idapython.3.disabled and idapython64.3.disabled in the plugins subdirectory.  If you want to switch to IDAPython 3, proceed as follows:</p>
+<ol>
+<li>Rename idapython[64].dll to idapython[64].2.disabled.</li>
+<li>Rename idapython[64].3.disabled to idapython[64].dll.</li>
+<li>Make sure a 64-bit Python 3 interpreter is installed.</li>
+<li>Run the command-line tool idapyswitch to configure IDAPython 3 for your Python interpreter.</li>
+</ol>
+<h4 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h4><p>IDAPython核心有如下3个python模块：</p>
+<ol>
+<li>idc模块负责提供IDC中所有的函数功能。</li>
+<li>idautils提供大量的实用函数，其中许多函数可生成各种数据库相关对象(如函数或交叉引用)的python列表。</li>
+<li>idaapi 允许使用者通过类的形式，访问更多底层的数据 。</li>
+</ol>
+<p>需要注意的是IDAPython会自动导入idc和idautils模块，idaapi模块需要自己手工导入。</p>
+<p>为了使用的清晰性，建议在开头都进行手工的import这三个模块。</p>
+<p><strong>注意事项</strong></p>
+<p>由于idaPython的升级，导致一些函数给改没了，文档中不再对之前版本的函数进行说明，但是这些函数都用新函数进行了实现，新旧关系的对应在文件 <code>idc_bc695.py</code>，可以进行对照说明。</p>
+<h4 id="基本操作"><a href="#基本操作" class="headerlink" title="基本操作"></a>基本操作</h4><p>获取当前地址</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">idc.here()</span><br><span class="line">idc.get_screen_ea()</span><br></pre></td></tr></table></figure>
+
+<p>获取当前地址空间的最小地址和最大地址</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">idc.get_inf_attr(INF_MIN_EA)</span><br><span class="line">idc.get_inf_attr(INF_MAX_EA)</span><br></pre></td></tr></table></figure>
+
+<p>在ida的反汇编窗口中，下面的每一个信息都可以用函数获取到</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">.text:00012529 mov esi, [esp+4+arg_0]</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">Python&gt; idc.get_segm_name(here())</span><br><span class="line"><span class="string">'.text'</span></span><br><span class="line">Python&gt; idc.GetDisasm(here())</span><br><span class="line"><span class="string">'call    sub_405060'</span></span><br><span class="line"></span><br><span class="line">Python&gt;idc.print_insn_mnem(here())</span><br><span class="line"><span class="string">'call'</span></span><br><span class="line">Python&gt;idc.print_operand(here(),<span class="number">0</span>)</span><br><span class="line"><span class="string">'sub_405060'</span></span><br><span class="line">Python&gt;idc.print_operand(here(),<span class="number">1</span>)</span><br><span class="line"><span class="string">''</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="段操作"><a href="#段操作" class="headerlink" title="段操作"></a>段操作</h4><p>打印一行数据好像并没什么卵用，但是 IDAPython 的强大之处在于它能遍历所有的指<br>令，所有的交叉引用地址，还有搜索所有的代码和数据。后面两项功能稍后再做介绍。我们<br>先从遍历所有段的指令开始讲起。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> idc </span><br><span class="line"><span class="keyword">import</span> idautils </span><br><span class="line"><span class="keyword">import</span> idaapi </span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> seg <span class="keyword">in</span> idautils.Segments():</span><br><span class="line">    print(idc.get_segm_name(seg),idc.get_segm_start(seg),idc.get_segm_end(seg))</span><br></pre></td></tr></table></figure>
+
+<h4 id="函数"><a href="#函数" class="headerlink" title="函数"></a>函数</h4><p>遍历所有函数：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> func <span class="keyword">in</span> idautils.Functions():</span><br><span class="line">    print(func,idc.get_func_name(func))</span><br></pre></td></tr></table></figure>
+
+<p>Functions()将返回一个保存着已知函数首地址的数组，同样此函数也可以用来查找在指定地址范围的函数列表。</p>
+<p>get_func_name(ea)用来获取函数名，ea这个参数可以是处于函数中的任何地址。</p>
+<p><code>idaapi.get_func_qty()</code>  获取此binary中识别的函数的个数。</p>
+<p><code>idaapi.getn_func(1)</code>获取第1个函数的对象。</p>
+<p>获取函数的边界信息：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">Python&gt;idaapi.get_func(here())</span><br><span class="line">&lt;ida_funcs.func_t; proxy of &lt;Swig Object of type <span class="string">'func_t *'</span> at <span class="number">0x000001711FC33C00</span>&gt; &gt;</span><br><span class="line">Python&gt;idaapi.get_func(here()).start_ea</span><br><span class="line"><span class="number">0x40573c</span></span><br><span class="line">Python&gt;idaapi.get_func(here()).end_ea</span><br><span class="line"><span class="number">0x405918</span></span><br></pre></td></tr></table></figure>
+
+<p>同时也可以使用 idc.get_next_func(ea)和get_prev_func(ea)获取ea地址的后一个函数和前一个函数。ea 的值需要在被分析的函数地址之内。在枚举函数的时候，只有 IDA 将这段代码标记为函数的时候才行，不然会在枚举的过程中被跳过。没有被标记为函数的代码将在图例（ida 顶部的彩色条）中标为红色。当然我们可以手工的修复这些无法被标记为函数的代码。</p>
+<p>还可以使用如下两个api来获取函数的边界地址：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">Python&gt;idc.get_func_attr(here(), FUNCATTR_START)</span><br><span class="line"><span class="number">0x404c90</span></span><br><span class="line">Python&gt;idc.get_func_attr(here(), FUNCATTR_END)</span><br><span class="line"><span class="number">0x405055</span></span><br></pre></td></tr></table></figure>
+
+<p><code>get_func_attr</code>的第二个参数有如下值：</p>
+<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">FUNCATTR_START</span> = <span class="number">0</span> <span class="comment"># function start address</span></span><br><span class="line"><span class="attr">FUNCATTR_END</span> = <span class="number">4</span> <span class="comment"># function end address</span></span><br><span class="line"><span class="attr">FUNCATTR_FLAGS</span> = <span class="number">8</span> <span class="comment"># function flags</span></span><br><span class="line"><span class="attr">FUNCATTR_FRAME</span> = <span class="number">10</span> <span class="comment"># function frame id</span></span><br><span class="line"><span class="attr">FUNCATTR_FRSIZE</span> = <span class="number">14</span> <span class="comment"># size of local variables</span></span><br><span class="line"><span class="attr">FUNCATTR_FRREGS</span> = <span class="number">18</span> <span class="comment"># size of saved registers area</span></span><br><span class="line"><span class="attr">FUNCATTR_ARGSIZE</span> = <span class="number">20</span> <span class="comment"># number of bytes purged from the stack</span></span><br><span class="line"><span class="attr">FUNCATTR_FPD</span> = <span class="number">24</span> <span class="comment"># frame pointer delta</span></span><br><span class="line"><span class="attr">FUNCATTR_COLOR</span> = <span class="number">28</span> <span class="comment"># function color code</span></span><br><span class="line"><span class="attr">FUNCATTR_OWNER</span> = <span class="number">10</span> <span class="comment"># chunk owner (valid only for tail chunks)</span></span><br><span class="line"><span class="attr">FUNCATTR_REFQTY</span> = <span class="number">14</span> <span class="comment"># number of chunk parents (valid only for tail chunks)</span></span><br></pre></td></tr></table></figure>
+
+<p><code>idc.get_name_ea_simple(&quot;runtime_concatstring3&quot;)</code> 利用函数名获取一个函数的地址。</p>
+<p>下面遍历函数的所有指令:</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> idc </span><br><span class="line"><span class="keyword">import</span> idautils </span><br><span class="line"><span class="keyword">import</span> idaapi </span><br><span class="line"></span><br><span class="line"></span><br><span class="line">start = idc.get_func_attr(here(),FUNCATTR_START)</span><br><span class="line">end = idc.get_func_attr(here(), FUNCATTR_END)</span><br><span class="line"></span><br><span class="line">curr_addr = start </span><br><span class="line"></span><br><span class="line"><span class="keyword">while</span> curr_addr &lt;= end:</span><br><span class="line">    print(hex(curr_addr),idc.GetDisasm(curr_addr))</span><br><span class="line">    curr_addr = idc.next_head(curr_addr,end)</span><br></pre></td></tr></table></figure>
+
+<p><code>idc.next_head(curr_addr,end)</code>返回处于<code>curr_addr</code>和<code>end</code>之间的下一条指令的地址，如果没有指令则返回 <code>idc.BADADDR</code>。这种方法的一个缺陷是它依赖于指令被包含在函数开始和结束的边界内。打个比方说，函数内有个 jmp 指令，它跳转到比这个函数结束地址还要高的地址中去，意思是这个函数的所有指令可能并不是线性的，它可能会通过jmp 跳出函数边界（起始地址和结束地址），但其实这段指令仍是属于这个函数的，那么我们使用上述的方法就不能够遍历到该函数要执行的所有指令。这种跳转在代码混淆中非常的常见，所以说我们最好还是使用 idautils.FuncItems(ea)来循环函数内的指令。</p>
+<p><code>idc.prev_head(ea)</code>获取ea地址的上一条指令的地址。</p>
+<p>关于函数的详细信息有如下几个函数：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">GetFrame</span><span class="params">(ea)</span>:</span> <span class="keyword">return</span> get_func_attr(ea, FUNCATTR_FRAME)</span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">GetFrameLvarSize</span><span class="params">(ea)</span>:</span> <span class="keyword">return</span> get_func_attr(ea, FUNCATTR_FRSIZE)</span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">GetFrameRegsSize</span><span class="params">(ea)</span>:</span> <span class="keyword">return</span> get_func_attr(ea, FUNCATTR_FRREGS)</span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">GetFrameArgsSize</span><span class="params">(ea)</span>:</span> <span class="keyword">return</span> get_func_attr(ea, FUNCATTR_ARGSIZE)</span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">GetFunctionFlags</span><span class="params">(ea)</span>:</span> <span class="keyword">return</span> get_func_attr(ea, FUNCATTR_FLAGS)</span><br></pre></td></tr></table></figure>
+
+<p>例如用如下代码获取函数的标志：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#coding:utf-8</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> idc </span><br><span class="line"><span class="keyword">import</span> idautils </span><br><span class="line"><span class="keyword">import</span> idaapi </span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> func <span class="keyword">in</span> idautils.Functions():</span><br><span class="line">    flags = idc.get_func_attr(func, FUNCATTR_FLAGS)</span><br><span class="line">    <span class="keyword">if</span> flags &amp; FUNC_NORET:</span><br><span class="line">        print(hex(func), <span class="string">"FUNC_NORET"</span>)</span><br><span class="line">    <span class="keyword">if</span> flags &amp; FUNC_FAR:</span><br><span class="line">        print(hex(func), <span class="string">"FUNC_FAR"</span>)</span><br><span class="line">    <span class="keyword">if</span> flags &amp; FUNC_LIB:</span><br><span class="line">        print(hex(func), <span class="string">"FUNC_LIB"</span>)</span><br><span class="line">    <span class="keyword">if</span> flags &amp; FUNC_STATIC:</span><br><span class="line">        print(hex(func), <span class="string">"FUNC_STATIC"</span>)</span><br><span class="line">    <span class="keyword">if</span> flags &amp; FUNC_FRAME:</span><br><span class="line">        print(hex(func), <span class="string">"FUNC_FRAME"</span>)</span><br><span class="line">    <span class="keyword">if</span> flags &amp; FUNC_USERFAR:</span><br><span class="line">        print(hex(func), <span class="string">"FUNC_USERFAR"</span>)</span><br><span class="line">    <span class="keyword">if</span> flags &amp; FUNC_HIDDEN:</span><br><span class="line">        print(hex(func), <span class="string">"FUNC_HIDDEN"</span>)</span><br><span class="line">    <span class="keyword">if</span> flags &amp; FUNC_THUNK:</span><br><span class="line">        print(hex(func), <span class="string">"FUNC_THUNK"</span>)</span><br><span class="line">    <span class="keyword">if</span> flags &amp; FUNC_LIB:</span><br><span class="line">        print(hex(func), <span class="string">"FUNC_BOTTOMBP"</span>)</span><br></pre></td></tr></table></figure>
+
+<p>各种标志的含义如下：</p>
+<figure class="highlight avrasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="symbol">FUNC_NORET:</span> 这个标志表示某个函数是否有返回值，它本身的值是 <span class="number">1</span>，下面是一个没有返回值的函数，</span><br><span class="line">注意它没有函数的最后并不是 <span class="keyword">ret</span> 或者 leave 指令</span><br><span class="line"></span><br><span class="line"><span class="symbol">FUNC_FAR:</span> 这个标志非常少的出现，标志程序是否使用分段内存，它的值为 <span class="number">2</span>。</span><br><span class="line"></span><br><span class="line"><span class="symbol">FUNC_USERFAR:</span> 这个标志也非常少见，也很少有文档，HexRays 把它描述为“user has specified far-ness</span><br><span class="line">of the function”，它的值是 <span class="number">32.</span></span><br><span class="line"></span><br><span class="line"><span class="symbol">FUNC_LIB:</span> 这个表示用于寻找库函数的代码。识别库函数代码是非常有必要的，因为我们在分析的</span><br><span class="line">时候一般将其跳过，它的值是 <span class="number">4</span>。下面的例子展示了如何使用这个标志。</span><br><span class="line"></span><br><span class="line">for func <span class="keyword">in</span> idautils.Functions():</span><br><span class="line">    flags = idc.get_func_attr(func, FUNCATTR_FLAGS)</span><br><span class="line"></span><br><span class="line">    if flags &amp; FUNC_LIB:</span><br><span class="line">        print(hex(func), <span class="string">"FUNC_LIB"</span>,get_func_name(func))</span><br><span class="line">        </span><br><span class="line"><span class="symbol">FUNC_STATIC:</span> 这个标志作用在于识别该函数在编译的是否是一个静态函数。在 c 语言中静态函数被默</span><br><span class="line">认为是全局的。如果作者把这个函数定义为静态函数，那么这个函数在只能被本文件中的函</span><br><span class="line">数访问。利用静态函数的判定我们可以更好的理解源代码的结构。</span><br><span class="line"></span><br><span class="line"><span class="symbol">FUNC_FRAME:</span> 这个标志表示函数是否使用了 ebp 寄存器（帧指针），使用 ebp 寄存器的函数通常有如</span><br><span class="line">下的语法设定，目的是为了保存栈帧。</span><br><span class="line"></span><br><span class="line"><span class="symbol">.text:</span><span class="number">00404</span>C90                 <span class="keyword">push</span>    ebp</span><br><span class="line"><span class="symbol">.text:</span><span class="number">00404</span>C91                 <span class="keyword">mov</span>     ebp, esp</span><br><span class="line"><span class="symbol">.text:</span><span class="number">00404</span>C96                 <span class="keyword">sub</span>     esp, <span class="number">65</span>Ch</span><br><span class="line"></span><br><span class="line"><span class="symbol">FUNC_BOTTOMBP:</span> 和 FUNC_FRAME 一样，该标志用于跟踪帧指针（ebp）。它作用是识别函数中帧指针是</span><br><span class="line">否等于堆栈指针（esp）。</span><br><span class="line"></span><br><span class="line"><span class="symbol">FUNC_HIDDEN:</span> 带有 FUNC_HIDDEN 标志的函数意味着它们是隐藏的，这个函数需要展开才能查看。如</span><br><span class="line">果我们跳转到一个标记为 HIDDEN 的地址的话，它会自动的展开。</span><br><span class="line"></span><br><span class="line"><span class="symbol">FUNC_THUNK:</span> 表示这个函数是否是一个 thunk 函数，thunk 函数表示的是一个简单的跳转函数。</span><br><span class="line"></span><br><span class="line"><span class="symbol">.text:</span><span class="number">1</span>A710606 Process32Next proc near</span><br><span class="line"><span class="symbol">.text:</span><span class="number">1</span>A710606 <span class="keyword">jmp</span> ds:__imp_Process32Next</span><br><span class="line"><span class="symbol">.text:</span><span class="number">1</span>A710606 Process32Next endp</span><br><span class="line"></span><br><span class="line">需要注意的是一个函数可能拥有多个标志的组合。</span><br></pre></td></tr></table></figure>
+
+<h4 id="指令"><a href="#指令" class="headerlink" title="指令"></a>指令</h4><p>如果我们拥有一个函数中的指令地址，我们可以使用 idautils.FuncItems(ea)来获取该函数中所有指令地址的集合。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#coding:utf-8</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> idc </span><br><span class="line"><span class="keyword">import</span> idautils </span><br><span class="line"><span class="keyword">import</span> idaapi </span><br><span class="line"></span><br><span class="line"></span><br><span class="line">items = idautils.FuncItems(here())</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> item <span class="keyword">in</span> items:</span><br><span class="line">    print(hex(item),idc.GetDisasm(item))</span><br></pre></td></tr></table></figure>
+
+<p>idautils.FuncItems(ea)会获取ea这个地址所在函数的所有指令的地址，返回一个迭代器。</p>
+<p>现在我们已经完全掌握了如何循环遍历程序中的段，函数和指令，那我们就开始 show 一个非常有用的例子。有时候我们会逆向一个加壳的代码，这时知道代码中哪里进行了动态调用对分析是非常有帮助的。一个动态<br>的调用可能是由 call 或者 jump 加上一个操作数来实现的，比如说 call eax，或者 jmp edi。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#coding:utf-8</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> idc </span><br><span class="line"><span class="keyword">import</span> idautils </span><br><span class="line"><span class="keyword">import</span> idaapi </span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> func <span class="keyword">in</span> idautils.Functions():</span><br><span class="line">    flags = idc.get_func_attr(func, FUNCATTR_FLAGS)</span><br><span class="line">    <span class="keyword">if</span> flags &amp; FUNC_LIB <span class="keyword">or</span> flags &amp; FUNC_THUNK:</span><br><span class="line">        <span class="keyword">continue</span></span><br><span class="line">    dism_addr = idautils.FuncItems(func)</span><br><span class="line">    <span class="keyword">for</span> line <span class="keyword">in</span> dism_addr:</span><br><span class="line">        m = idc.print_insn_mnem(line)</span><br><span class="line">        <span class="keyword">if</span> m == <span class="string">"call"</span> <span class="keyword">or</span> m == <span class="string">"jmp"</span>:</span><br><span class="line">            op = idc.get_operand_type(line,<span class="number">0</span>)</span><br><span class="line">            <span class="keyword">if</span> op == o_reg:</span><br><span class="line">                print(hex(line),idc.GetDisasm(line))</span><br></pre></td></tr></table></figure>
+
+<p><code>get_operand_type(ea,n)</code>获取操作数类型，n=0表示第一个操作数，n=1表示第二个操作数。</p>
+<p>关于类型的定义请看下一节。</p>
+<p>获取当前指令的下一个指令的地址和上一个指令的地址,<code>idc.next_head</code>和<code>idc.prev_head</code>，这两个函数的功能获取的是下一条指令的地址而不是下一个地址，如果要获取下一个地址或者上一个的话，我们使用的是</p>
+<p><code>idc.next_addr</code>和<code>idc.prev_addr</code>。</p>
+<h4 id="操作数"><a href="#操作数" class="headerlink" title="操作数"></a>操作数</h4><p>操作数在逆向分析中经常被使用，所以说了解所有的操作数类型对逆向分析是非常有帮助的。在前面文中提到我们可以使用 idc.get_operand_type(ea,n)来获取操作数类型，ea 是一个地址，n 是一个索引。操作数总共有八种不同的类型。</p>
+<figure class="highlight angelscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line">o_void: 如果指令没有任何操作数，它将返回 <span class="number">0</span>。</span><br><span class="line">o_reg: 如果操作数是寄存器，则返回这种类型，它的值为 <span class="number">1</span></span><br><span class="line">o_mem: 如果操作数是直接寻址的内存，那么返回这种类型，它的值是 <span class="number">2</span>，这种类型对寻找 DATA</span><br><span class="line">的引用非常有帮助。</span><br><span class="line"></span><br><span class="line">Python&gt;print hex(ea), idc.GetDisasm(ea)</span><br><span class="line"><span class="number">0xa05d86</span> cmp ds:dword_A152B8, <span class="number">0</span></span><br><span class="line">Python&gt;print idc.GetOpType(ea,<span class="number">0</span>)</span><br><span class="line"><span class="number">2</span></span><br><span class="line"></span><br><span class="line">o_phrase: 如果操作数是利用基址寄存器和变址寄存器的寻址操作的话，那么返回该类型，值为<span class="number">3</span></span><br><span class="line"></span><br><span class="line">Python&gt;print hex(ea), idc.GetDisasm(ea)</span><br><span class="line"><span class="number">0x1000b8c2</span> mov [edi+ecx], eax</span><br><span class="line">Python&gt;print idc.GetOpType(ea,<span class="number">0</span>)</span><br><span class="line"><span class="number">3</span></span><br><span class="line"></span><br><span class="line">o_displ: 如果操作数是利用寄存器和位移的寻址操作的话，返回该类型，值为 <span class="number">4</span>，位移指的是像如下代码中的 <span class="number">0x18</span>，这在获取结构体中的某个数据是非常常见的。</span><br><span class="line"></span><br><span class="line">Python&gt;print hex(ea), idc.GetDisasm(ea)</span><br><span class="line"><span class="number">0xa05dc1</span> mov eax, [edi+<span class="number">18</span>h]</span><br><span class="line">Python&gt;print idc.GetOpType(ea,<span class="number">1</span>)</span><br><span class="line"><span class="number">4</span></span><br><span class="line"></span><br><span class="line">o_imm: 如果操作数是一个确定的数值的话，那么返回类型，值为 <span class="number">5</span></span><br><span class="line">-------------------------------------------</span><br><span class="line">Python&gt;print hex(ea), idc.GetDisasm(ea)</span><br><span class="line"><span class="number">0xa05da1</span> add esp, <span class="number">0</span>Ch</span><br><span class="line">Python&gt;print idc.get_operand_type(ea,<span class="number">1</span>)</span><br><span class="line"><span class="number">5</span></span><br><span class="line">-------------------------------------------</span><br><span class="line">o_far: 这种返回类型在 x86 和 x86_64 的逆向中不常见。它用来判断直接访问远端地址的操作数，值为<span class="number">6</span></span><br><span class="line">o_near: 这种返回类型在 x86 和 x86_64 的逆向中不常见。它用来判断直接访问近端地址的操作数，值为 <span class="number">7</span></span><br></pre></td></tr></table></figure>
+
+<h5 id="例子1"><a href="#例子1" class="headerlink" title="例子1"></a>例子1</h5><p>当我们在逆向一个可执行文件的时候，我们可能会注意到一些代码会不断的重复使用某<br>个偏移量。这种操作感觉上是代码在传递某个结构体给不同的函数使用。接下来的这个例子<br>的目的是创建一个 python 的字典，字典包含了可执行文件中使用的所有偏移量，让偏移量<br>作为字典的 key，而每个 key 对应的 value 存储着所有使用该偏移量的地址。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#coding:utf-8</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> idc </span><br><span class="line"><span class="keyword">import</span> idautils </span><br><span class="line"><span class="keyword">import</span> idaapi </span><br><span class="line"><span class="keyword">from</span> collections <span class="keyword">import</span> defaultdict</span><br><span class="line"></span><br><span class="line">displace = defaultdict(list)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> func <span class="keyword">in</span> idautils.Functions():</span><br><span class="line">    flags = idc.get_func_attr(func, FUNCATTR_FLAGS)</span><br><span class="line">    <span class="keyword">if</span> flags &amp; FUNC_LIB <span class="keyword">or</span> flags &amp; FUNC_THUNK:</span><br><span class="line">        <span class="keyword">continue</span></span><br><span class="line">    dism_addr = idautils.FuncItems(func)</span><br><span class="line">    <span class="keyword">for</span> line <span class="keyword">in</span> dism_addr:</span><br><span class="line">        op = <span class="literal">None</span></span><br><span class="line">        index = <span class="literal">None</span></span><br><span class="line">        </span><br><span class="line">        <span class="comment"># 定义结果结构来解析当前的指令</span></span><br><span class="line">        tmp = idaapi.insn_t()</span><br><span class="line">        idaapi.decode_insn(tmp,line)</span><br><span class="line">        <span class="keyword">if</span> tmp.Op1.type == idaapi.o_displ:</span><br><span class="line">            op = <span class="number">1</span></span><br><span class="line">        <span class="keyword">if</span> tmp.Op2.type == idaapi.o_displ:</span><br><span class="line">            op = <span class="number">2</span> </span><br><span class="line">        <span class="keyword">if</span> op == <span class="literal">None</span>:</span><br><span class="line">            <span class="keyword">continue</span></span><br><span class="line">        <span class="keyword">if</span> <span class="string">"bp"</span> <span class="keyword">in</span>  idc.print_operand(line,<span class="number">0</span>) <span class="keyword">or</span> <span class="string">"bp"</span> <span class="keyword">in</span> idc.print_operand(line,<span class="number">1</span>):</span><br><span class="line">            <span class="keyword">if</span> op == <span class="number">1</span>:</span><br><span class="line">                index = (~(int(tmp.Op1.addr) - <span class="number">1</span>) &amp; <span class="number">0xFFFFFFFF</span>)</span><br><span class="line">            <span class="keyword">else</span>:</span><br><span class="line">                index = (~(int(tmp.Op2.addr) - <span class="number">1</span>) &amp; <span class="number">0xFFFFFFFF</span>)</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            <span class="keyword">if</span> op ==<span class="number">1</span> :</span><br><span class="line">                index = int(tmp.Op1.addr)</span><br><span class="line">            <span class="keyword">else</span>:</span><br><span class="line">                index = int(tmp.Op2.addr)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> index:</span><br><span class="line">            displace[index].append( hex(line) )</span><br><span class="line">            </span><br><span class="line">print(displace)</span><br></pre></td></tr></table></figure>
+
+<p><code>idaapi.decode_insn(tmp,line)</code>是解析指令的另一种底层的方法，但是 表示偏移的意思。详细可以看<a href="https://www.hex-rays.com/products/ida/support/sdkdoc/classop__t.html#a866a7d0be0dce15c155d93d097ef54b3" target="_blank" rel="noopener">这个文档</a>。</p>
+<p>我们已经获取了操作符的字符串表示，那么我们检查操作符中是否包含了“bp”字符串，这是一个快速判断操作符的中寄存器是否为 bp，ebp 或者 rbp 的方法。检查”bp”字符串的目的在于确定偏移量是否是一个负数。我们使用idaapi.cmd.Op1.addr 来获取偏移量，这个方法会返回一个字符串。然后我们把他转换成为一个 integer 类型，如果需要的话把它转换为正数，然后我们把它放进脚本最开始定义的字典 display 中去。这样就完成了我们的操作，之后如果你想要查找使用某个偏移量的所有地址，直接读取就可以了。</p>
+<h5 id="例子2"><a href="#例子2" class="headerlink" title="例子2"></a>例子2</h5><p>有时候我们在逆向分析一个可执行文件的内存转储的时候，有些操作数就不是一个偏移量了。看如下代码：</p>
+<figure class="highlight x86asm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">push</span> <span class="number">0Ch</span></span><br><span class="line"><span class="keyword">push</span> <span class="number">0BC10B8h</span></span><br><span class="line"><span class="keyword">push</span> [<span class="built_in">esp</span>+<span class="number">10h</span>+arg_0]</span><br><span class="line"><span class="keyword">call</span> <span class="built_in">ds</span>:_strnicmp</span><br></pre></td></tr></table></figure>
+
+<p>第二个被 push 的值是一个存在内存中的偏移。如果我们通过右键把这个偏移定义为data 类型，我们可以看到这个偏移其实是一个字符串，当然完成这个定义操作很简单，但是,有时候这种操作太多了话就需要写一个脚本来自动完成这件事情。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#coding:utf-8</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> idc </span><br><span class="line"><span class="keyword">import</span> idautils </span><br><span class="line"><span class="keyword">import</span> idaapi </span><br><span class="line"><span class="keyword">from</span> collections <span class="keyword">import</span> defaultdict</span><br><span class="line"></span><br><span class="line">min = idc.get_inf_attr(INF_MIN_EA)</span><br><span class="line">max = idc.get_inf_attr(INF_MAX_EA)</span><br><span class="line"><span class="comment"># for each known function</span></span><br><span class="line"><span class="keyword">for</span> func <span class="keyword">in</span> idautils.Functions():</span><br><span class="line">    flags = idc.get_func_attr(func, FUNCATTR_FLAGS)</span><br><span class="line"><span class="comment"># skip library &amp; thunk functions</span></span><br><span class="line">    <span class="keyword">if</span> flags &amp; FUNC_LIB <span class="keyword">or</span> flags &amp; FUNC_THUNK:</span><br><span class="line">        <span class="keyword">continue</span></span><br><span class="line">    dism_addr = list(idautils.FuncItems(func))</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> curr_addr <span class="keyword">in</span> dism_addr:</span><br><span class="line">        <span class="keyword">if</span> idc.get_operand_type(curr_addr, <span class="number">0</span>) == <span class="number">5</span> <span class="keyword">and</span> \</span><br><span class="line">        (min &lt; idc.get_operand_value(curr_addr,<span class="number">0</span>) &lt; max):</span><br><span class="line">            idc.op_plain_offset(curr_addr, <span class="number">0</span>, <span class="number">0</span>)</span><br><span class="line">            <span class="comment"># print(hex(curr_addr))</span></span><br><span class="line">        <span class="keyword">if</span> idc.get_operand_type(curr_addr, <span class="number">1</span>) == <span class="number">5</span> <span class="keyword">and</span> (min &lt; idc.get_operand_value(curr_addr,<span class="number">1</span>) &lt; max):</span><br><span class="line">            idc.op_plain_offset(curr_addr, <span class="number">1</span>, <span class="number">0</span>)</span><br><span class="line">            <span class="comment"># print( hex(curr_addr) )</span></span><br></pre></td></tr></table></figure>
+
+<p><code>idc.get_operand_value(ea,n)</code>获取操作数的值。</p>
+<p><code>idc.op_plain_offset(ea,n,base)</code>,将操作数转换为一个偏移地址，该函数的第一个参数为地址，第二个参数为操作数的索引，第三个参数是基地址，该例子中只需要设置为0即可。</p>
+<h4 id="交叉引用-Xrefs"><a href="#交叉引用-Xrefs" class="headerlink" title="交叉引用(Xrefs)"></a>交叉引用(Xrefs)</h4><p>能够定位data段和code段的交叉引用非常重要，交叉引用的重要性在于它能够提供某个确定的数据或者某个函数被调用的位置。举个栗子，如果我们想要知道哪些地址调用了 WriteFile()函数，我们所要做的就是在导入表中找到 WriteFile()函数，然后查看其交叉引用即可。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#coding:utf-8</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> idc </span><br><span class="line"><span class="keyword">import</span> idautils </span><br><span class="line"><span class="keyword">import</span> idaapi </span><br><span class="line"><span class="keyword">from</span> collections <span class="keyword">import</span> defaultdict</span><br><span class="line"></span><br><span class="line">addr = idc.get_name_ea_simple(<span class="string">"StartServiceCtrlDispatcherW"</span>)</span><br><span class="line"></span><br><span class="line">print( idc.GetDisasm(addr) )</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> idautils.CodeRefsTo(addr,<span class="number">0</span>):</span><br><span class="line">    print( hex(i),idc.GetDisasm(i) )</span><br></pre></td></tr></table></figure>
+
+<p><code>idc.get_name_ea_simple(&quot;StartServiceCtrlDispatcherW&quot;)</code>来获取API函数的地址，然后使用<code>idautils.CodeRefsTo(ea,flow)</code>来获取该API的所有交叉引用，在函数中，ea 参数是我们想要寻找交叉引用的地址，flow 参数是一个 bool 值，它用于指定是否遵循正常的代码流。</p>
+<p>也可以调用 <code>idautils.Names()</code>函数来获取在 IDA 中任何 API 和被重命名的函数的相关信息，该函数将返回一个类型为(ea, str_name)的元组。</p>
+<p>我们同样可以利用 idautisl.CodeRefsFrom(ea,flow)该函数来获取任意地址所引用的代码，下面的例子展示获取某地址的引用信息。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">Python&gt;addr = here()</span><br><span class="line">Python&gt;idautils.CodeRefsFrom(addr,<span class="number">0</span>)</span><br><span class="line">Python&gt;<span class="keyword">for</span> i <span class="keyword">in</span> idautils.CodeRefsFrom(addr,<span class="number">0</span>):print(hex(i),idc.GetDisasm(i))</span><br><span class="line"><span class="number">0x40a008</span> extrn StartServiceCtrlDispatcherW:dword</span><br></pre></td></tr></table></figure>
+
+<p>但有一点要注意：使用 idautils.CodeRefsTo（ea，flow）的限制是，动态导入并手动重命名的 API 不会<br>显示为代码交叉引用。比如下面我们利用 idc.MakeName(ea, name)将一个 dword 的地址重<br>命名为”RtlCompareMemory”。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">&gt;hex(ea)</span><br><span class="line"><span class="number">0xa26c78</span></span><br><span class="line">&gt;set_name(ea, <span class="string">"RtlCompareMemory"</span>, SN_CHECK)</span><br><span class="line"><span class="literal">True</span></span><br><span class="line">&gt;<span class="keyword">for</span> addr <span class="keyword">in</span> idautils.CodeRefsTo(ea,<span class="number">0</span>):print(hex(addr),idc.GetDisasm(addr))</span><br></pre></td></tr></table></figure>
+
+<p>IDA 并不会将这些 API 标记为交叉引用代码。稍后我们将会使用一个通用的技术来获得所有的交叉引用。</p>
+<p>如果我们想要查找数据的交叉引用或者调用，我们使用 idautils.DataRefsTo(e) 或者 idautils.DataRefsFrom(ea)。</p>
+<p>idautils.DataRefsTo(ea)函数只有一个地址参数，它返回该数据地址的所有交叉引用（迭代器）。</p>
+<p>idautils.DataRefsFrom(ea)只携带一个地址作为参数，它返回改、该地址所引用的数据地址。</p>
+<p>在查找数据和代码的交叉引用的时候可能会有一些困惑，这里我们使用前面所提到的有一种更加通用的方法来获取交叉引用，该方法调用两个函数就能完成获取所有交叉引用地址和调用地址的效果，这两个函数就是 idautils.XrefsTo(ea, flags=0)和 idautils.XrefsFrom(ea,flags=0)。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#coding:utf-8</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> idc </span><br><span class="line"><span class="keyword">import</span> idautils </span><br><span class="line"><span class="keyword">import</span> idaapi </span><br><span class="line"><span class="keyword">from</span> collections <span class="keyword">import</span> defaultdict</span><br><span class="line"></span><br><span class="line">addr = here()</span><br><span class="line"></span><br><span class="line">print(hex(addr),idc.GetDisasm(addr))</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> xref <span class="keyword">in</span> idautils.XrefsTo(addr,<span class="number">1</span>): </span><br><span class="line">    print(xref.type,idautils.XrefTypeName(xref.type),hex(xref.frm),hex(xref.to),xref.iscode)</span><br></pre></td></tr></table></figure>
+
+<p><code>idautils.XrefsTo(ea,flags=0)</code>ida_xref.XREF_ALL=0 (default), ida_xref.XREF_FAR=1, ida_xref.XREF_DATA=2</p>
+<p>xref.type来指明该交叉引用的类型，idautils.XrefTypeName(xref.t ype)用来打印表示该类型的含义，这其中有十二种不同的类型。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">0</span>= <span class="string">'Unknown'</span></span><br><span class="line"><span class="number">1</span>= <span class="string">'Offset'</span></span><br><span class="line"><span class="number">2</span>= <span class="string">'Write'</span></span><br><span class="line"><span class="number">3</span>= <span class="string">'Read'</span></span><br><span class="line"><span class="number">4</span>= <span class="string">'Text'</span></span><br><span class="line"><span class="number">5</span> = <span class="string">'Data_Informational'</span></span><br><span class="line"><span class="number">16</span>= <span class="string">'Far_Call'</span></span><br><span class="line"><span class="number">17</span>= <span class="string">'Near_Call'</span></span><br><span class="line"><span class="number">18</span>= <span class="string">'Far_Jump'</span></span><br><span class="line"><span class="number">19</span>= <span class="string">'Near_Jump'</span></span><br><span class="line"><span class="number">20</span>= <span class="string">'Code_User'</span></span><br><span class="line"><span class="number">21</span> = <span class="string">'Ordinary_Flow'</span></span><br></pre></td></tr></table></figure>
+
+<p>xref.frm 打印出该地址的交叉引用，xref.to 打印出改地址本身，xref.iscode 打印出该交叉引用是否在代码段中，上述的代码我们使用了 idautils.XrefsTo(ea, 1)并将其 flag 位设为了1，如果我们将 flag 设为 0 的话，那么它将会显示该地址的任意交叉引用。设置flag为0获取的交叉引用不只是来自于分支跳转指令，同时还会来自正常的指令流程，设置flag为1可以略过正常指令流程造成的交叉引用。</p>
+<h4 id="搜索"><a href="#搜索" class="headerlink" title="搜索"></a>搜索</h4><p>我们其实已经能够通过遍历所有已知的函数及其指令来达到一种基本的搜索效果，这当然很有用，但是有时候我们需要搜索一些特定的字节，比如说 0x55,0x8b,0xec 这种字节序列，这 3 个字节其实代表的汇编代码为 push ebp, mov ebp, esp。所以我们可以使用<code>idc.find_binary(ea,flag,searchstr,radix=16)</code>来实行字节或者二进制的搜索。ea代表啥就不说了，flag代表搜索方向或者条件。flag有好几种不同的类型：</p>
+<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">SEARCH_UP</span> = <span class="number">0</span></span><br><span class="line"><span class="attr">SEARCH_DOWN</span> = <span class="number">1</span></span><br><span class="line"><span class="attr">SEARCH_NEXT</span> = <span class="number">2</span></span><br><span class="line"><span class="attr">SEARCH_CASE</span> = <span class="number">4</span></span><br><span class="line"><span class="attr">SEARCH_REGEX</span> = <span class="number">8</span></span><br><span class="line"><span class="attr">SEARCH_NOBRK</span> = <span class="number">16</span></span><br><span class="line"><span class="attr">SEARCH_NOSHOW</span> = <span class="number">32</span></span><br><span class="line"><span class="attr">SEARCH_IDENT</span> = <span class="number">128</span></span><br><span class="line"><span class="attr">SEARCH_BRK</span> = <span class="number">256</span></span><br></pre></td></tr></table></figure>
+
+<p>上面的类型不必要都看一遍，但是还是要看看一些常用的类型：</p>
+<ul>
+<li>SEARCH_UP 和 SEARCH_DOWN 用来指明搜索的方向</li>
+<li>SEARCH_NEXT 用来获取下一个已经找到的对象</li>
+<li>SEARCH_CASE 用来指明是否区分大小写</li>
+<li>SEARCH_NOSHOW 用来指明是否显示搜索的进度</li>
+</ul>
+<p>searchstr 是我们要查找的形态，radix 参数在写处理器模块时使用，这超出本书要讲解的范围，所以我推荐你去看一看 Chris Eagle 的“The IDA Pro Book”的第 19 章，所以这里我们把 radix 参数留空。现在让我们来实现刚才提到的那三个字节的搜索好了：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#coding:utf-8</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> idc </span><br><span class="line"><span class="keyword">import</span> idautils </span><br><span class="line"><span class="keyword">import</span> idaapi </span><br><span class="line"><span class="keyword">from</span> collections <span class="keyword">import</span> defaultdict</span><br><span class="line"></span><br><span class="line">pattern = <span class="string">"55 8B EC"</span></span><br><span class="line"></span><br><span class="line">addr = idc.get_inf_attr(INF_MIN_EA)</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> x <span class="keyword">in</span> range(<span class="number">0</span>,<span class="number">5</span>):</span><br><span class="line">    addr = idc.find_binary(addr,SEARCH_DOWN,pattern)</span><br><span class="line">    <span class="keyword">if</span> addr!= idc.BADADDR:</span><br><span class="line">        print(hex(addr),idc.GetDisasm(addr))</span><br></pre></td></tr></table></figure>
+
+<p>第一行我们定义了要搜索的形式，搜索形式可以是 16 进制格式，比如 0x55 0x8B 0xEC和 55 8B EC 都是可以的，\x55\x8B\xEC 这种格式可不行，除非你使用 idc.find_text(ea, flag,y, x, searchstr)这个函数。</p>
+<p>但是我们搜索的时候，地址并没有增长，那是因为我们写程序的时候没有增加SEARCH_NEXT这个标记。正确的写法如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#coding:utf-8</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> idc </span><br><span class="line"><span class="keyword">import</span> idautils </span><br><span class="line"><span class="keyword">import</span> idaapi </span><br><span class="line"><span class="keyword">from</span> collections <span class="keyword">import</span> defaultdict</span><br><span class="line"></span><br><span class="line">pattern = <span class="string">"55 8B EC"</span></span><br><span class="line"></span><br><span class="line">addr = idc.get_inf_attr(INF_MIN_EA)</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> x <span class="keyword">in</span> range(<span class="number">0</span>,<span class="number">5</span>):</span><br><span class="line">    addr = idc.find_binary(addr,SEARCH_DOWN|SEARCH_NEXT,pattern)</span><br><span class="line">    <span class="keyword">if</span> addr!= idc.BADADDR:</span><br><span class="line">        print(hex(addr),idc.GetDisasm(addr))</span><br></pre></td></tr></table></figure>
+
+<p>搜索字符串使用函数<code>idc.find_text(ea, flag, y, x, searchstr, from_bc695=False)</code>ea参数是地址，flag参数是搜索方向和搜索类型。y是从ea开始搜索的行数，x 是行中的坐标。这两个参数通常置 0，现在我们开始查找字符串“Accept”的出现的次数。当然你可以换换其他的字符串，可以从字符串窗口（shift+F12）获得。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#coding:utf-8</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> idc </span><br><span class="line"><span class="keyword">import</span> idautils </span><br><span class="line"><span class="keyword">import</span> idaapi </span><br><span class="line"><span class="keyword">from</span> collections <span class="keyword">import</span> defaultdict</span><br><span class="line"></span><br><span class="line">addr = idc.get_inf_attr(INF_MIN_EA)</span><br><span class="line">end = idc.get_inf_attr(INF_MAX_EA)</span><br><span class="line"></span><br><span class="line"><span class="keyword">while</span> addr &lt; end:</span><br><span class="line">    addr = idc.find_text(addr,SEARCH_DOWN,<span class="number">0</span>,<span class="number">0</span>,<span class="string">"accept"</span>)</span><br><span class="line">    <span class="keyword">if</span> addr == idc.BADADDR:</span><br><span class="line">        <span class="keyword">break</span></span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        print(hex(addr),idc.GetDisasm(addr))</span><br><span class="line">        addr = idc.next_head(addr)</span><br></pre></td></tr></table></figure>
+
+<p>因为我们利用了 idc.NextHead(ea)使当前地址不断增长，所以就不需要在 idc. FindText()中添加 SEARCH_NEXT 的标志。为什么我们要手动的增加地址呢，因为一行字符串中可能出现多次要查找的字符串，往上翻认真阅读 SEARCH_NEXT的标志的意思。</p>
+<p>IDApython用如下函数来判断一个地址的类型，这些api返回bool值，true或者false </p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">idc.is_code(f) <span class="comment"># 判断是否是代码</span></span><br><span class="line">idc.is_data(f) <span class="comment"># 判断是否是数据</span></span><br><span class="line">idc.is_tail(f) <span class="comment"># 判断 IDA 是否将其判定为尾部。</span></span><br><span class="line">idc.is_unknown(f) <span class="comment"># 判断 IDA 是否将其判定为未知，即既不是数据，也不是代码。</span></span><br><span class="line">idc.is_head(f) <span class="comment"># 判断 IDA 是否将其判定为头部。</span></span><br></pre></td></tr></table></figure>
+
+<p>f 这个参数是新出现的，相比起于传递地址，我们还要先通过 idc.get_full_flags(ea)获取地址的内部标志表示，然后再传给 idc.is 系列函数当参数，代码如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">Python&gt;idc.get_full_flags(here())</span><br><span class="line"><span class="number">0x4001078d</span></span><br><span class="line">Python&gt;idc.is_code( idc.get_full_flags(here()))</span><br><span class="line"><span class="literal">True</span></span><br></pre></td></tr></table></figure>
+
+<p><code>idc.find_code(ea,flag)</code>该函数用来寻找被标志为代码的下一个地址。这对我们想要查找数据块的末尾是很有帮助的。如果 ea 是代码地址，那么该函数返回下一个代码地址，flag 参数看前面的 idc.find_text就可以了。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Python&gt;addr = idc.find_code(addr,SEARCH_DOWN|SEARCH_NEXT)</span><br><span class="line">Python&gt;print(hex(addr),idc.GetDisasm(addr))</span><br><span class="line"><span class="number">0x404d70</span> lea     ecx, [esp+<span class="number">668</span>h+phkResult]</span><br></pre></td></tr></table></figure>
+
+<p>这个函数会跳过一些数据段的地址，得到最近的一个代码端的首地址。</p>
+<p><code>idc.find_data(ea,flag)</code>和上面的<code>find_code</code>函数差不多，不过它返回的是数据段的地址。</p>
+<p><code>idc.find_unknown(ea,flag)</code>该功能用于查找 IDA 未识别为代码或数据的字节地址。未知类型需要通过观察或脚本进一步手动分析。</p>
+<p><code>idc.find_defined(ea, flag)</code>它用于查找 IDA 标识为代码或数据的地址。</p>
+<p><code>idc.find_imm(ea, flag, value)</code>用来寻找立即数。例如：相比于寻找一些类型，我们有些时候其实更希望能够找到特定的值，举个栗子，你感觉代码里面肯定是用了 rand()函数来产生随机数的，但是你就是找不到它，咋办？如果我们知道这个 rand()函数采用了 0x343fd 作为种子那么我们就可以去寻找这个数值：</p>
+<p>idc.imm函数返回一个元组，元组的第一项为地址，第二项为标识是第几个操作数。这里操作数的算法和 idc.print_operand一样，也是从 0 开始的。循环使用搜索需要添加SEARCH_ DOWN|SEARCH_NEXT 标志。</p>
+<h4 id="数据提取"><a href="#数据提取" class="headerlink" title="数据提取"></a>数据提取</h4><p>ida可以获取到用户使用鼠标选中高亮的部分的代码，可以使用如下两个函数获取到选中部分的起始地址。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">Python&gt;idc.read_selection_start()</span><br><span class="line"><span class="number">0x404cdb</span></span><br><span class="line">Python&gt;idc.read_selection_end()</span><br><span class="line"><span class="number">0x404d70</span></span><br></pre></td></tr></table></figure>
+
+<p>注意<code>idc.read_selection_end()</code>获取的的并不是这一段代码的末尾地址，选中部分的最后一条指令的下一条指令的起始地址。</p>
+<p>函数<code>idaapi.read_selection()</code>也可以实现上面的效果：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">p0 = idaapi.twinpos_t()</span><br><span class="line">p1 = idaapi.twinpos_t()</span><br><span class="line">view = idaapi.get_current_viewer()</span><br><span class="line">idaapi.read_selection(view, p0, p1)</span><br></pre></td></tr></table></figure>
+
+<h4 id="注释和重命名"><a href="#注释和重命名" class="headerlink" title="注释和重命名"></a>注释和重命名</h4><p>注释一共有两种，第一种是常规注释，第二种是重复性注释。重复性注释会因为某些地址引用了当前地址的内容，而会自动添加上注释。</p>
+<p>使用注释<code>idc.set_cmt(ea, cmt, 0)</code>来增加注释，使用<code>idc.set_cmt(ea, cmt, 1)</code>来增加重复性地址。</p>
+<p>ea是要添加注释的地址，cmt是要添加的注释。</p>
+<p><code>idc.get_cmt(ea, 0)</code>获取常规注释，<code>idc.get_cmt(ea, 1)</code>获取重复性注释。</p>
+<p>当然不止指令可以添加注释，函数也可以添加注释，利用<code>idc.set_func_cmt(ea, cmt, repeatable)</code>来添加注释，利用<code>idc.get_func_cmt(ea, repeatable)</code>来获取函数的注释。ea可以是函数中的任何地址，cmt就是我们需要添加的注释，repeatable 同上面一样。将函数的注释标记为可重复性的话，那么它会在任何调用该函数的地方增加注释。</p>
+<p>重命名函数和地址是一项非常常见的自动化任务，特别是在一些地址无关的代码(PIC),加壳或者封装函数中，因为在 PIC 代码和脱壳代码中，导入表可能并不存在于转储中。而封装函数的功能只是简单的调用 API 而已。</p>
+<p><code>idc.set_name(ea, name, SN_CHECK)</code>用来重命名某个地址的函数。</p>
+<p>值得注意的是 rename_wrapper 中的 idc.MakeNameEx(ea,name, flag)用法，因为使用 idc.MakeName 的话，如果某一个函数名称已经被使用了，那么ida 会抛出一个警告的对话。为了跳过该对话框，我们将 flag 的值设置为 256 或者SN_NOWARN 即可。我们可以应用一些逻辑来将函数重命名为 w_HeapFree_1 等，但为简洁起见，我们会将其忽略。</p>
+<h4 id="访问原始数据"><a href="#访问原始数据" class="headerlink" title="访问原始数据"></a>访问原始数据</h4><p>在逆向工程中获取原始数据是非常重要的，原始数据是16进制的字节，它们被解释为数据或代码，ida中我们可以在反汇编代码窗口的左侧看到这些原始数据。（IDA中显示的设置方法： 菜单栏–&gt;选项–&gt;常规–&gt;反汇编–&gt;机器码字节数，填入一个数就ok了–&gt;确定 ）</p>
+<p>要获取原始数据的话我们首先要指定获取的单元大小，这些获取原始数据 API 的命名规则就是以单元大小。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">idc.get_wide_byte(ea) // 获取单字节</span><br><span class="line">idc.get_wide_word(ea) // 获取一个字</span><br><span class="line">idc.get_wide_dword(ea) // 获取双字</span><br><span class="line">idc.get_qword(ea) // 获取四字</span><br><span class="line">idc.GetFloat(ea) </span><br><span class="line">idc.GetDouble(ea)</span><br></pre></td></tr></table></figure>
+
+<p>在编写解码脚本是获取单个字节或者单个字并没有太多卵用，所以我们可以使用<br>idc.get_bytes(ea, size, use_dbg = False)来获取某个地址开始的更多的字节。最后一个参<br>数是可选的，用来指定是否正在调试内存。</p>
+<p><code>idc.get_bytes</code>返回的是bytes类型，跟<code>idc.get_wide_byte(ea)</code>返回的整型有区别。</p>
+<h4 id="补丁"><a href="#补丁" class="headerlink" title="补丁"></a>补丁</h4><p>有时候我们在逆向一个恶意软件的时候，样本会有被加密的字符串。这会阻碍我们分析的过程和组织我们通过字符串来定位关键点。这种情况下给 idb 文件打补丁就很有用了。重命名地址但是好像并没有卵用，因为命名是有约束限制的，所以我们需要给某些地址做patch了，我们可以使用如下的函数来 patch：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">patch_byte(ea, value)</span><br><span class="line">patch_word(ea, value)</span><br><span class="line">patch_dword(ea, value)</span><br><span class="line">patch_qword(ea, value)</span><br></pre></td></tr></table></figure>
+
+<p>ea 是地址，value 是值，注意值要和你选择的函数相对应即可。</p>
+<h4 id="输入和输出"><a href="#输入和输出" class="headerlink" title="输入和输出"></a>输入和输出</h4><p>在 IDAPython 中当我们并不知道文件的位置或者并不知道用户想要把他们的数据存储在什么地方，输入输出文件就很重要了。导入导出文件我们可以使用 ida_kernwin.ask_file(for_saving, mask, prompt)这个函数，当 forsave 参数为 0，打开一个文件对话框，当 forsave 的参数为 1，打开一个文件保存对话框，mask 用来指定文件后缀或者模式，比如我只想打开.dll 文件的话就可已使用“*.dll”作为 mask 的参数，prompt 是窗口的名称。</p>
+<h4 id="批生成文件"><a href="#批生成文件" class="headerlink" title="批生成文件"></a>批生成文件</h4><p>有时，为目录中的所有文件创建 IDB 或 ASM 可能很有用。 在分析属于同一系列恶意软件的一组样本时，这可以帮助节省时间。比起手工做这件事情，写一个批处理文件会容易许多，我们只需要将-B 该参数传给 idaw.exe 即可，下面的代码可以被复制到包含我们想为其生成文件的所有文件的目录中。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#coding:utf-8</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> idc </span><br><span class="line"><span class="keyword">import</span> idautils </span><br><span class="line"><span class="keyword">import</span> idaapi </span><br><span class="line"><span class="keyword">from</span> collections <span class="keyword">import</span> defaultdict</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> os</span><br><span class="line"><span class="keyword">import</span> subprocess</span><br><span class="line"><span class="keyword">import</span> glob</span><br><span class="line">paths = glob.glob(<span class="string">"*"</span>)</span><br><span class="line">ida_path = os.path.join(os.environ[<span class="string">'PROGRAMFILES'</span>], <span class="string">"IDA"</span>,<span class="string">"idaw.exe"</span>)</span><br><span class="line"><span class="keyword">for</span> file_path <span class="keyword">in</span> paths:</span><br><span class="line">    <span class="keyword">if</span> file_path.endswith(<span class="string">".py"</span>):</span><br><span class="line">        <span class="keyword">continue</span></span><br><span class="line">        subprocess.call([ida_path, <span class="string">"-B"</span>, file_path])</span><br></pre></td></tr></table></figure>
+
+<p>脚本运行完成后，会在当前目录下生成ASM文件和IDB文件。</p>
+<h4 id="可执行脚本"><a href="#可执行脚本" class="headerlink" title="可执行脚本"></a>可执行脚本</h4><p>ipapython脚本可以在命令行中执行，我们也可以使用下面计算 IDB 拥有指令个数的脚<br>本，然后将其个数写进一个叫做“instru_count.txt”文件中。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#coding:utf-8</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> idc </span><br><span class="line"><span class="keyword">import</span> idautils </span><br><span class="line"><span class="keyword">import</span> idaapi </span><br><span class="line"><span class="keyword">from</span> collections <span class="keyword">import</span> defaultdict</span><br><span class="line"></span><br><span class="line">idaapi.auto_wait()</span><br><span class="line"></span><br><span class="line">count = <span class="number">0</span> </span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> func <span class="keyword">in</span> idautils.Functions():</span><br><span class="line">    flags = idc.get_func_attr(func, FUNCATTR_FLAGS)</span><br><span class="line">    <span class="keyword">if</span> flags &amp; idc.FUNC_LIB:</span><br><span class="line">        <span class="keyword">continue</span></span><br><span class="line">    <span class="keyword">for</span> instru <span class="keyword">in</span> idautils.FuncItems(func):</span><br><span class="line">        count += <span class="number">1</span></span><br><span class="line"></span><br><span class="line">f = open(<span class="string">"instru_count.t"</span>,<span class="string">'w'</span>) </span><br><span class="line"></span><br><span class="line">writeContent = <span class="string">"Instruction count is &#123;&#125;"</span>.format(count)</span><br><span class="line"></span><br><span class="line">print(writeContent)</span><br><span class="line"></span><br><span class="line">f.write(writeContent)</span><br><span class="line">f.close()</span><br><span class="line">idc.qexit(<span class="number">0</span>)</span><br></pre></td></tr></table></figure>
+
+<p>上面两个十分重要的函数，一个是<code>idaapi.auto_wait()</code>,一个是<code>idc.qexit(0)</code>,当ida打开一个文件的时候，等待IDA分析完成是很重要的，因为 IDA 分析一个文件需要花大量的时间。这时候你不能执行 IDAPython 脚本，所以你可使用<code>idaapi.auto_wait()</code>来等待IDA文件分析结束，它会在 IDA 分析完成之前一直等待，一旦分析完成，控制权就会交到脚本身上。然后我们同样需要使用 idc.qexit(0)来结束脚本的执行，如果不这么做的话，IDB 可以会在关闭的时候出问题。</p>
+<p>如果我们想要计算IDB包含的多少行的话，我们可以使用以下的指令完成。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">idat.exe -A   -S<span class="string">"test.py"</span>  .\Trojan.Win32.AntiAV.aaa.json.idb</span><br></pre></td></tr></table></figure>
+
+<p>-A表示自动化分析，-S表示idb被打开之后立即执行的脚本。</p>
+<p>同时自动化脚本也是支持参数的：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">idat.exe -A   -S<span class="string">"test.py test"</span>  .\Trojan.Win32.AntiAV.aaa.json.idb</span><br></pre></td></tr></table></figure>
+
+<p>就能够向脚本中传参数test，可以使用<code>idc.ARGV</code>获取。</p>
+<h4 id="流程图"><a href="#流程图" class="headerlink" title="流程图"></a>流程图</h4><p>使用ida python生成CFG图。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#coding:utf-8</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> idc </span><br><span class="line"><span class="keyword">import</span> idautils </span><br><span class="line"><span class="keyword">import</span> idaapi </span><br><span class="line"><span class="keyword">from</span> collections <span class="keyword">import</span> defaultdict</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">cls_main</span><span class="params">(p=True)</span>:</span></span><br><span class="line">    f = idaapi.FlowChart(idaapi.get_func(here()))</span><br><span class="line">    <span class="keyword">for</span> block <span class="keyword">in</span> f:</span><br><span class="line">        <span class="keyword">if</span> p:</span><br><span class="line">            print(<span class="string">"%x - %x [%d]:"</span> % (block.start_ea, block.end_ea, block.id))</span><br><span class="line">        <span class="keyword">for</span> succ_block <span class="keyword">in</span> block.succs(): <span class="comment"># 获取后继节点</span></span><br><span class="line">            <span class="keyword">if</span> p:</span><br><span class="line">                print(<span class="string">"  succs: %x - %x [%d]:"</span> % (succ_block.start_ea, succ_block.end_ea, succ_block.id))</span><br><span class="line">                </span><br><span class="line">        <span class="keyword">for</span> pred_block <span class="keyword">in</span> block.preds(): <span class="comment"># 获取前驱节点</span></span><br><span class="line">            <span class="keyword">if</span> p:</span><br><span class="line">                print(<span class="string">"  preds:%x - %x [%d]:"</span> % (pred_block.start_ea, pred_block.end_ea, pred_block.id))</span><br><span class="line">        </span><br><span class="line">cls_main()</span><br></pre></td></tr></table></figure>
+
+<h4 id="函数栈帧的访问"><a href="#函数栈帧的访问" class="headerlink" title="函数栈帧的访问"></a>函数栈帧的访问</h4><p>在x86程序中，EBP寄存器通常专门用做栈帧指针，例外 gun/g++提供 -fomit-frame-pointer编译选项，可以生成不依赖于固定帧指针寄存器的函数。</p>
+<p><img src="https://pic.wonderkun.cc/uploads/2020/12/Snipaste_2020-01-29_21-46-07.png" alt="Snipaste_2020-01-29_21-46-07"><br>基于ebp做栈帧指针的函数，正偏移是函数参数，负偏移是则用于访问函数的局部变量。</p>
+<p>很明显函数的栈帧是一个运行时的概念，没有栈和运行时的程序，栈帧就不可能存在。话虽如此，但是并不意味者ida在做静态的分析的时候就会忽略掉栈帧的概念。二进制文件中包含配置每个函数栈帧所需的所有代码，通过仔细分析这些代码，我们就可以深入了解任何函数的栈帧结构，即使这个函数并未运行。在IDA中也会有一些复杂的分析来确定IDA反汇编的每个函数的栈帧布局。在分析的过程中，IDA会记住每一次push/pop操作，以及其他的任何可能改变栈指针的运算，如增加或者减去常量，尽可能的去观察栈指针在函数执行时的行为。</p>
+<p>IDA提供一个摘要视图，列出了栈帧内被直接引用的每一个变量，以及变量的大小和与它们与帧指针的偏移距离。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">404C90 ; int __stdcall WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)</span><br><span class="line">.text:00404C90 _WinMain@16     proc near               ; CODE XREF: start+186↓p</span><br><span class="line">.text:00404C90</span><br><span class="line">.text:00404C90 phkResult       &#x3D; dword ptr -658h</span><br><span class="line">.text:00404C90 Data            &#x3D; byte ptr -654h</span><br><span class="line">.text:00404C90 var_650         &#x3D; WNDCLASSEXW ptr -650h</span><br><span class="line">.text:00404C90 String1         &#x3D; word ptr -620h</span><br><span class="line">.text:00404C90 var_61E         &#x3D; byte ptr -61Eh</span><br><span class="line">.text:00404C90 anonymous_0     &#x3D; byte ptr -41Ah</span><br><span class="line">.text:00404C90 var_418         &#x3D; word ptr -418h</span><br><span class="line">.text:00404C90 var_416         &#x3D; byte ptr -416h</span><br><span class="line">.text:00404C90 anonymous_1     &#x3D; byte ptr -212h</span><br><span class="line">.text:00404C90 String2         &#x3D; word ptr -210h</span><br><span class="line">.text:00404C90 var_20E         &#x3D; byte ptr -20Eh</span><br><span class="line">.text:00404C90 anonymous_2     &#x3D; byte ptr -0Ah</span><br><span class="line">.text:00404C90 StackCookie     &#x3D; dword ptr -4</span><br><span class="line">.text:00404C90 hInstance       &#x3D; dword ptr  8</span><br><span class="line">.text:00404C90 hPrevInstance   &#x3D; dword ptr  0Ch</span><br><span class="line">.text:00404C90 lpCmdLine       &#x3D; dword ptr  10h</span><br><span class="line">.text:00404C90 nShowCmd        &#x3D; dword ptr  14h</span><br></pre></td></tr></table></figure>
+
+<p>但是需要注意的是 <code>arg_0</code> 对应的偏移是 <code>ebp+0x4</code>,<code>arg_4</code>对应的偏移是<code>ebp+0x8</code>。</p>
+<p>idapython也提供获取此函数栈帧的api，获取到之后是一个结构体，操作结构体成员就可以获取到函数栈帧内的所有变量。相关的函数说明如下：</p>
+<ul>
+<li>idaapi.get_func(ea): retrieves the <code>func_t</code> structure for the function at <code>ea</code></li>
+<li><code>idaapi.get_frame(func_t foo)</code>: returns the <code>struct_t</code> structure for the function frame specified by <code>foo</code></li>
+<li><code>idautils.DecodeInstruction(ea)</code>: returns the <code>inst_t</code> representing instruction at <code>ea</code>,和函数<code>idaapi.decode_insn</code>功能相同。</li>
+<li>idaapi.get_stkvar(op_t op, sval_t v): <code>op</code> is a reference to an instruction, <code>v</code> is the immediate value in the operand. Usually you just use <code>op.addr</code>. It returns a tuple, <code>(member_t, val)</code>. <code>member_t</code> is a pointer to the stack variable, which is what we need. <code>val</code> is the same value as the <code>soff</code> field in the <code>member_t</code> for the stack var. More on this later.</li>
+<li>idaapi.xreflist_t()<code>: creates a new</code>xreflist<code>of</code>xreflist_entry_t`</li>
+<li>idaapi.build_stkvar_xrefs(xreflist_t xrefs, func_t func, member_t member): fills xrefs with <code>xreflist_entry_t</code>‘s that represent the stack var xrefs given by <code>member</code> in <code>func</code>.</li>
+<li><code>struct_t.get_member(x)</code>: You can use this method to iterate all stack variables in a frame to retrieve all <code>member_t</code>‘s. If you want to build xrefs for all stack variables, this is usually easier.</li>
+<li><code>idc.get_member_name(id, member_offset)</code>: id is the struct sid，member_offset. get the member name defined in the name.</li>
+<li><code>idc.get_member_offset(id,name)</code>： 获取偏移。</li>
+</ul>
+<p>下面对<code>iautils.DecodeInstruction(ea)</code>指令进行一个简单的说明，这是一个指令解码的API，如果解码失败返回None，否则将返回一个包含该指令及其操作数的指令对象。</p>
+<p>比较重要的指令属性如下：</p>
+<ul>
+<li><p><code>inst.itype</code> 标志当前指令的类型，是一个整数，不同的opcode可能有相同的itype，但是opcode不是itype。</p>
+</li>
+<li><p><code>inst.size</code>: 表示解码后的指令长度</p>
+</li>
+<li><p><code>inst.ops[]</code>:以0为索引的数组，用来保存操作数的相关信息</p>
+</li>
+<li><p><code>inst.Op1...inst.OpN</code>： 以1位索引起始操作数组别名,和inst.ops[n+1]等价。</p>
+</li>
+<li><p><code>inst.ea</code>： 指令的线性地址。</p>
+<p>你可能会想知道opcode和它的<code>itype</code>之间到底是什么关系。其实很简单，在IDA中，开源数据库处理器模块负责根据opcode来填充<code>itype</code>字段。在IDA SDK中，你可以找到一个<code>allins.hpp</code>的头文件。该头文件包含了所有支持的处理器模块的枚举数据其中包含了受支持的所有指令： </p>
+</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Excerpt from allins.hpp</span></span><br><span class="line"><span class="comment">// x86/x64 itypes</span></span><br><span class="line"><span class="keyword">enum</span></span><br><span class="line">&#123;</span><br><span class="line">NN_null = <span class="number">0</span>,            <span class="comment">// Unknown Operation</span></span><br><span class="line">NN_aaa,                 <span class="comment">// ASCII Adjust after Addition</span></span><br><span class="line">NN_aad,                 <span class="comment">// ASCII Adjust AX before Division</span></span><br><span class="line">NN_aam,                 <span class="comment">// ASCII Adjust AX after Multiply</span></span><br><span class="line">NN_aas,                 <span class="comment">// ASCII Adjust AL after Subtraction</span></span><br><span class="line">.</span><br><span class="line">.</span><br><span class="line">.</span><br><span class="line">NN_jz,                  <span class="comment">// Jump if Zero (ZF=1)</span></span><br><span class="line">NN_jmp,                 <span class="comment">// Jump</span></span><br><span class="line">NN_jmpfi,               <span class="comment">// Indirect Far Jump</span></span><br><span class="line">NN_jmpni,               <span class="comment">// Indirect Near Jump</span></span><br><span class="line">NN_jmpshort,            <span class="comment">// Jump Short (not used)</span></span><br><span class="line">NN_lahf,                <span class="comment">// Load Flags into AH Register</span></span><br><span class="line">.</span><br><span class="line">.</span><br><span class="line">.</span><br><span class="line"><span class="comment">// Pentium III Pseudo instructions</span></span><br><span class="line">NN_cmpeqps,             <span class="comment">// Packed Single-FP Compare EQ</span></span><br><span class="line">NN_cmpltps,             <span class="comment">// Packed Single-FP Compare LT</span></span><br><span class="line">NN_cmpleps,             <span class="comment">// Packed Single-FP Compare LE</span></span><br><span class="line">NN_cmpunordps,          <span class="comment">// Packed Single-FP Compare UNORD</span></span><br><span class="line">.</span><br><span class="line">.</span><br><span class="line">.</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p> 不知道为什么，反正<code>NN_</code>前缀用来表示x86/x64处理器上的指令。 </p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># .text:00402085 74 09 jz short loc_402090</span></span><br><span class="line">inst = idautils.DecodeInstruction(<span class="number">0x402085</span>)</span><br><span class="line">print(<span class="string">"YES"</span> <span class="keyword">if</span> inst.itype == idaapi.NN_jz <span class="keyword">else</span> <span class="string">"NO"</span>)</span><br></pre></td></tr></table></figure>
+
+<p> 至于操作数，可以通过访问<code>inst.Operands[]</code>或者<code>inst.OpN</code>来访问。要获取被解码指令使用的操作数数量不应依赖<code>Operands</code>数组的长度，因为它总是被解析成<code>UA_MAXOP==8</code>（参阅ida.hpp）。因此应该使用遍历每个操作数并检查操作数的类型是否是<code>o_void</code>类型。 </p>
+<p> 操作数的定义是<code>ua.hpp</code>中的<code>op_t</code>结构。 </p>
+<ul>
+<li><p><code>op.flags</code>：操作数的标志</p>
+</li>
+<li><p><code>op.dtype</code>：操作数的长度类型。<code>idaapi.dt_xxx</code>常量，可以通过该常量来获取操作数的字节大小（1 == idaapi.dt_byte,2 == idaapi.dt_word等等）。</p>
+</li>
+<li><p><code>op.type</code>：操作数类型。<code>idc.o_xxx</code>常量。</p>
+</li>
+<li><p><code>specflags1</code>…<code>specflags4</code>：处理器相关标志。</p>
+<p>以下是受支持的操作数类型（<code>o_xxx</code>）:</p>
+</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">o_void：没有该操作数。</span><br><span class="line">o_reg：该操作数是寄存器（ax,al,es,ds等等）</span><br><span class="line">o_mem：直接寻址（数据）</span><br><span class="line">o_phrase：[基址+变址]寻址</span><br><span class="line">o_displ：[基址+变址+偏移]寻址</span><br><span class="line">o_imm：立即数</span><br><span class="line">o_far：直接远地址（far address，代码）</span><br><span class="line">o_near：直接近地址（near address，代码）</span><br><span class="line">o_dispspec0...o_dispspec5：处理器相关标志。</span><br></pre></td></tr></table></figure>
+
+<p>还有一些操作数成员的含义因操作数的类型而异：</p>
+<figure class="highlight ceylon"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">op<span class="number">_</span>reg：寄存器编号（o<span class="number">_</span>reg）</span><br><span class="line">op<span class="number">_p</span>hrase：内存访问中的索引寄存器（o<span class="number">_p</span>hrase）</span><br><span class="line">op<span class="number">_</span><span class="keyword">value</span>：立即数（o<span class="number">_</span>imm）或偏移（o<span class="number">_</span>displ）</span><br><span class="line">op<span class="number">_</span>addr： 操作数使用的内存地址（o<span class="number">_m</span>em，o<span class="number">_f</span>ar，o<span class="number">_</span>displ，o<span class="number">_n</span>ear）</span><br></pre></td></tr></table></figure>
+
+<p> 当操作数的类型是<code>o_reg</code>或者<code>o_phrase</code>的时候，<code>op_reg</code>/<code>op_phrase</code>值包含了对应寄存器的枚举值。就像<code>NN_xxx</code>专有标签，IDA SDK同样提供了寄存器的名称常量，以及其对应的值；但是，这只适用于<code>x86</code>/<code>x64</code>处理器模块。我从<code>intel.hpp</code>中摘抄了一部分： </p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">enum</span> RegNo</span><br><span class="line">&#123;</span><br><span class="line">  R_ax = <span class="number">0</span>,</span><br><span class="line">  R_cx,</span><br><span class="line">  R_dx,</span><br><span class="line">  R_bx,</span><br><span class="line">  R_sp,</span><br><span class="line">  R_bp,</span><br><span class="line">  R_si,</span><br><span class="line">  R_di</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p> 不幸的是，这些值并没有被IDAPython导出，但是至少我们知道了足够多的信息来定义下边的一些数据： </p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">REG_EAX = <span class="number">0</span></span><br><span class="line">REG_EDX = <span class="number">2</span></span><br><span class="line">REG_EBP = <span class="number">5</span></span><br><span class="line">.</span><br><span class="line">.</span><br><span class="line">.</span><br><span class="line">REG_NAMES = &#123; REG_EAX: <span class="string">'eax'</span>, REG_EDX: <span class="string">'edx'</span>, REG_EBP: <span class="string">'ebp'</span> ...&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以利用如下代码获取某个函数栈帧的所有成员以及偏移。注意获取的frame不仅包括函数栈帧还包括返回地址以及形参。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#coding:utf-8</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> idc </span><br><span class="line"><span class="keyword">import</span> idautils </span><br><span class="line"><span class="keyword">import</span> idaapi </span><br><span class="line"><span class="keyword">from</span> collections <span class="keyword">import</span> defaultdict</span><br><span class="line"></span><br><span class="line">addr = here()</span><br><span class="line"></span><br><span class="line">func = idaapi.get_func(addr)</span><br><span class="line">frame = idaapi.get_frame(func)</span><br><span class="line">print(frame)</span><br><span class="line">x = <span class="number">0</span></span><br><span class="line">dictMem = &#123;&#125;</span><br><span class="line"><span class="keyword">while</span>(x &lt; frame.memqty):</span><br><span class="line">    name = idc.get_member_name(frame.id, frame.get_member(x).soff)</span><br><span class="line">    dictMem[name] =  hex(idc.get_member_offset(frame.id,name))</span><br><span class="line">    x = x+<span class="number">1</span></span><br><span class="line">print(dictMem)</span><br></pre></td></tr></table></figure>
+
+<p>获得的结果如下：</p>
+<figure class="highlight 1c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">&#123;'phkResult': '0x10', </span><br><span class="line">'Data': '0x14', </span><br><span class="line">'var_650': '0x18', </span><br><span class="line">'String1': '0x48', </span><br><span class="line">'var_61E': '0x4a', </span><br><span class="line">'anonymous_0': '0x24e', </span><br><span class="line">'var_418': '0x250', </span><br><span class="line">'var_416': '0x252', </span><br><span class="line">'anonymous_1': '0x456', </span><br><span class="line">'String2': '0x458', </span><br><span class="line">'var_20E': '0x45a', </span><br><span class="line">'anonymous_2': '0x65e', </span><br><span class="line">'StackCookie': '0x664', </span><br><span class="line">' s': '0x668', </span><br><span class="line">' r': '0x66c', </span><br><span class="line">'hInstance': '0x670', </span><br><span class="line">'hPrevInstance': '0x674', </span><br><span class="line">'lpCmdLine': '0x678', </span><br><span class="line">'nShowCmd': '0x67c'</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>注意此偏移都是相对于当前栈帧的栈底(也就是esp)来说的。注意两个非常重要的成员” r”和” s”，其中” r”代表返回地址存储的偏移，” s”代表当前函数栈帧中ebp距离esp的位置(也就是函数栈帧的大小)。<strong>注意有个空格</strong></p>
+<p>也可以利用此frame的结构来获取x86中当前函数参数的字节数。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">ret_off = idc.get_member_offset(frame.id,<span class="string">" r"</span>)</span><br><span class="line">first_arg_off = ret_off + <span class="number">4</span> </span><br><span class="line">args_size = idc.get_struc_size(frame.id) - first_arg_off</span><br><span class="line"></span><br><span class="line">print(args_size)</span><br></pre></td></tr></table></figure>
+
+<p>获取某个函数的某一条指令中引用的函数栈帧变量的名字以及在frame中的偏移，并获取其他地方引用此变量的地址。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 0x00404C90 is the function address</span></span><br><span class="line"><span class="comment"># 0x00404CA4 is an instruction address referencing</span></span><br><span class="line"><span class="comment"># a stack variable. It looks like:</span></span><br><span class="line"><span class="comment"># .text:00404CA4  mov     [esp+668h+StackCookie], eax</span></span><br><span class="line"><span class="comment"># .text:00404CBF  mov     ecx, [esp+668h+StackCookie] ; StackCookie</span></span><br><span class="line"></span><br><span class="line">pFunc = idaapi.get_func(<span class="number">0x00404C90</span>)</span><br><span class="line">pFrame = idaapi.get_frame(pFunc)</span><br><span class="line">inst = idautils.DecodeInstruction(<span class="number">0x00404CA4</span>)</span><br><span class="line">op = inst[<span class="number">0</span>] <span class="comment">#获取第一个操作数，注意此操作数必须有栈帧变量的引用，否则下条指令会报错</span></span><br><span class="line">pMember, val = idaapi.get_stkvar(inst,op, op.addr) <span class="comment"># pMember 是frame结构体中的成员，val是在frame中的偏移量</span></span><br><span class="line"></span><br><span class="line">xrefs = idaapi.xreflist_t()</span><br><span class="line">idaapi.build_stkvar_xrefs(xrefs, pFunc, pMember)</span><br><span class="line"><span class="keyword">for</span> xref <span class="keyword">in</span> xrefs:</span><br><span class="line">    print(hex(xref.ea)) <span class="comment">#print xref address</span></span><br></pre></td></tr></table></figure>
+
+<p>也可以使用如下代码找具体的某个栈帧变量在函数中的引用。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">pFunc = idaapi.get_func(<span class="number">0x00404C90</span>)</span><br><span class="line">pFrame = idaapi.get_frame(pFunc)</span><br><span class="line"></span><br><span class="line">dictMem = dict()</span><br><span class="line">x = <span class="number">0</span></span><br><span class="line"><span class="keyword">while</span>(x &lt; pFrame.memqty):</span><br><span class="line">    dictMem[idc.get_member_name(pFrame.id, pFrame.get_member(x).soff)] = pFrame.get_member(x)</span><br><span class="line">    x = x+<span class="number">1</span></span><br><span class="line"><span class="comment"># given var name you can now use the</span></span><br><span class="line"><span class="comment"># dictionary to grab the member_t to pass</span></span><br><span class="line"><span class="comment"># to build_stkvar_xrefs</span></span><br><span class="line">pMem = dictMem[<span class="string">"hInstance"</span>]</span><br><span class="line">xrefs = idaapi.xreflist_t()</span><br><span class="line">idaapi.build_stkvar_xrefs(xrefs, pFunc, pMem)</span><br><span class="line"><span class="keyword">for</span> xref <span class="keyword">in</span> xrefs:</span><br><span class="line">    print(hex(xref.ea)) <span class="comment">#print xrefs to var_4</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="程序入口点"><a href="#程序入口点" class="headerlink" title="程序入口点"></a>程序入口点</h4><figure class="highlight reasonml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">idc.get<span class="constructor">_entry_qty()</span> 获取入口点个数</span><br><span class="line">idc.get<span class="constructor">_entry_ordinal(<span class="params">index</span>)</span> 获取入口点地址</span><br><span class="line">idc.get<span class="constructor">_entry_name(<span class="params">ordinal</span>)</span> 入口名</span><br></pre></td></tr></table></figure>
+
+<h4 id="调试"><a href="#调试" class="headerlink" title="调试"></a>调试</h4><p>安装调试的hook使用如下api：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">debugger = idaapi.DBG_Hooks()</span><br><span class="line">debugger.hook()</span><br></pre></td></tr></table></figure>
+
+<p> 现在运行调试器，hook 会捕捉所有的调试事件，这样就能非常精确的控制 IDA 调试器。 下面的函数在调试的时候非常有用: </p>
+<figure class="highlight routeros"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">idc.add_bpt( long<span class="built_in"> Address </span>) # 在指定的地点设置软件断点。</span><br><span class="line">idc.get_bpt_qty() #返回当前设置的断点数量。</span><br><span class="line">idc.get_reg_value(string Register) # 获取寄存器的值 ,dbg必须处于运行状态</span><br><span class="line">idc.set_reg_Value(long Value, string Register) # 通过寄存器名获得寄存器值。</span><br></pre></td></tr></table></figure>
+
+
+        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+<ins class="adsbygoogle"
+     style="display:block; text-align:center;"
+     data-ad-layout="in-article"
+     data-ad-format="fluid"
+     data-ad-client="ca-pub-9381923643450020"
+     data-ad-slot="2524986173"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+
+        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+<!-- 页面嵌入广告 -->
+<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-9381923643450020"
+     data-ad-slot="3413388404"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/binary/" rel="tag"># binary</a>
+              <a href="/tags/pwn/" rel="tag"># pwn</a>
+              <a href="/tags/%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95/" rel="tag"># 学习记录</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2020/05/13/php%20pwn%E5%AD%A6%E4%B9%A0%E5%85%A5%E9%97%A8%E4%BA%8C/" rel="prev" title="php pwn学习入门二 (格式化字符串漏洞)">
+      <i class="fa fa-chevron-left"></i> php pwn学习入门二 (格式化字符串漏洞)
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2020/12/13/%E6%9D%80%E8%BD%AF%E7%9A%84%E6%97%A0%E5%A5%88-%E5%9F%BA%E7%A1%80%E5%B7%A5%E5%85%B7%E7%AF%87(%E4%B8%80)/" rel="next" title="杀软的无奈-基础工具篇(一)">
+      杀软的无奈-基础工具篇(一) <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    <div class="comments" id="valine-comments"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#idapython的学习资料推荐"><span class="nav-number">1.</span> <span class="nav-text">idapython的学习资料推荐</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#ida-python2-and-python3-switch"><span class="nav-number">2.</span> <span class="nav-text">ida python2 and python3 switch</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#简介"><span class="nav-number">2.1.</span> <span class="nav-text">简介</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#基本操作"><span class="nav-number">2.2.</span> <span class="nav-text">基本操作</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#段操作"><span class="nav-number">2.3.</span> <span class="nav-text">段操作</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#函数"><span class="nav-number">2.4.</span> <span class="nav-text">函数</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#指令"><span class="nav-number">2.5.</span> <span class="nav-text">指令</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#操作数"><span class="nav-number">2.6.</span> <span class="nav-text">操作数</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#例子1"><span class="nav-number">2.6.1.</span> <span class="nav-text">例子1</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#例子2"><span class="nav-number">2.6.2.</span> <span class="nav-text">例子2</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#交叉引用-Xrefs"><span class="nav-number">2.7.</span> <span class="nav-text">交叉引用(Xrefs)</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#搜索"><span class="nav-number">2.8.</span> <span class="nav-text">搜索</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#数据提取"><span class="nav-number">2.9.</span> <span class="nav-text">数据提取</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#注释和重命名"><span class="nav-number">2.10.</span> <span class="nav-text">注释和重命名</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#访问原始数据"><span class="nav-number">2.11.</span> <span class="nav-text">访问原始数据</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#补丁"><span class="nav-number">2.12.</span> <span class="nav-text">补丁</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#输入和输出"><span class="nav-number">2.13.</span> <span class="nav-text">输入和输出</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#批生成文件"><span class="nav-number">2.14.</span> <span class="nav-text">批生成文件</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#可执行脚本"><span class="nav-number">2.15.</span> <span class="nav-text">可执行脚本</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#流程图"><span class="nav-number">2.16.</span> <span class="nav-text">流程图</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#函数栈帧的访问"><span class="nav-number">2.17.</span> <span class="nav-text">函数栈帧的访问</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#程序入口点"><span class="nav-number">2.18.</span> <span class="nav-text">程序入口点</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#调试"><span class="nav-number">2.19.</span> <span class="nav-text">调试</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="wonderkun"
+      src="https://pic.wonderkun.cc/uploads/2016/04/09451H922-11.jpg">
+  <p class="site-author-name" itemprop="name">wonderkun</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">58</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">7</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">46</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/wonderkun" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;wonderkun" rel="noopener" target="_blank"><i class="github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="/729173164@qq.com" title="E-Mail → 729173164@qq.com"><i class="QQ fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+  <div class="links-of-blogroll motion-element">
+    <div class="links-of-blogroll-title"><i class="fa fa-link fa-fw"></i>
+      友情链接
+    </div>
+    <ul class="links-of-blogroll-list">
+        <li class="links-of-blogroll-item">
+          <a href="https://www.leavesongs.com/" title="https:&#x2F;&#x2F;www.leavesongs.com&#x2F;" rel="noopener" target="_blank">phithon</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://www.bertramc.cn/" title="https:&#x2F;&#x2F;www.bertramc.cn&#x2F;" rel="noopener" target="_blank">berTrAM</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.cnblogs.com/" title="http:&#x2F;&#x2F;www.cnblogs.com&#x2F;" rel="noopener" target="_blank">l3m0n</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.yulegeyu.com/" title="http:&#x2F;&#x2F;www.yulegeyu.com&#x2F;" rel="noopener" target="_blank">雨神</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.wupco.cn/" title="http:&#x2F;&#x2F;www.wupco.cn&#x2F;" rel="noopener" target="_blank">wupco</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.bendawang.site/" title="http:&#x2F;&#x2F;www.bendawang.site&#x2F;" rel="noopener" target="_blank">bendawang</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://pcat.cnblogs.com/" title="http:&#x2F;&#x2F;pcat.cnblogs.com&#x2F;" rel="noopener" target="_blank">pcat</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.yqxiaojunjie.com/" title="http:&#x2F;&#x2F;www.yqxiaojunjie.com&#x2F;" rel="noopener" target="_blank">乐清小俊杰</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://lorexxar.cn/" title="https:&#x2F;&#x2F;lorexxar.cn&#x2F;" rel="noopener" target="_blank">LoRexxar</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://pupiles.com/" title="http:&#x2F;&#x2F;pupiles.com&#x2F;" rel="noopener" target="_blank">Pupil</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.venenof.com/" title="http:&#x2F;&#x2F;www.venenof.com&#x2F;" rel="noopener" target="_blank">venenof</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.bywalks.com/" title="http:&#x2F;&#x2F;www.bywalks.com&#x2F;" rel="noopener" target="_blank">bywalks</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://chybeta.github.io/" title="https:&#x2F;&#x2F;chybeta.github.io&#x2F;" rel="noopener" target="_blank">chybeta</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://blog.evalbug.com/" title="http:&#x2F;&#x2F;blog.evalbug.com&#x2F;" rel="noopener" target="_blank">yan表哥</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://pav1.cc/wordpress/" title="http:&#x2F;&#x2F;pav1.cc&#x2F;wordpress&#x2F;" rel="noopener" target="_blank">Pav1师傅</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.venenof.com/" title="http:&#x2F;&#x2F;www.venenof.com&#x2F;" rel="noopener" target="_blank">venenof7</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://www.smi1e.top/" title="https:&#x2F;&#x2F;www.smi1e.top&#x2F;" rel="noopener" target="_blank">smi1e</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://afang5472.blogspot.com/" title="https:&#x2F;&#x2F;afang5472.blogspot.com&#x2F;" rel="noopener" target="_blank">afang</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://rebirthwyw.com/" title="https:&#x2F;&#x2F;rebirthwyw.com&#x2F;" rel="noopener" target="_blank">rebirthwyw</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://ww9210.cn/" title="https:&#x2F;&#x2F;ww9210.cn&#x2F;" rel="noopener" target="_blank">ww9210</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://magicbluech.github.io/" title="https:&#x2F;&#x2F;magicbluech.github.io&#x2F;" rel="noopener" target="_blank">magicbluech</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://d1nn3r.github.io/" title="https:&#x2F;&#x2F;d1nn3r.github.io&#x2F;" rel="noopener" target="_blank">d1nn3r</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://www.rai4over.cn/" title="http:&#x2F;&#x2F;www.rai4over.cn&#x2F;" rel="noopener" target="_blank">rai4over</a>
+        </li>
+    </ul>
+  </div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+  <div class="beian"><a href="https://beian.miit.gov.cn/" rel="noopener" target="_blank">陕ICP备17014925号 </a>
+  </div>
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">wonderkun</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/fancybox/jquery.min.js"></script>
+  <script src="/lib/fancybox/jquery.fancybox.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+
+<script>
+NexT.utils.loadComments(document.querySelector('#valine-comments'), () => {
+  NexT.utils.getScript('//unpkg.com/valine/dist/Valine.min.js', () => {
+    var GUEST = ['nick', 'mail', 'link'];
+    var guest = 'nick,mail,link';
+    guest = guest.split(',').filter(item => {
+      return GUEST.includes(item);
+    });
+    new Valine({
+      el         : '#valine-comments',
+      verify     : true,
+      notify     : true,
+      appId      : 'T7sfFTnT9P1YS302SrmgIa3m-gzGzoHsz',
+      appKey     : 'WfIozMe5BYlmjQ5VMPJpu4G2',
+      placeholder: "ヾﾉ≧∀≦)o来啊，尽情吐槽啊!",
+      avatar     : 'mm',
+      meta       : guest,
+      pageSize   : '10' || 10,
+      visitor    : true,
+      lang       : 'zh-cn' || 'zh-cn',
+      path       : location.pathname,
+      recordIP   : false,
+      serverURLs : ''
+    });
+  }, window.Valine);
+});
+</script>
+
+</body>
+</html>
